@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Danh sách sản phẩm</title>
+<style>
+  :root{--bg:#fafafa;--card:#fff;--accent:#0b84ff;--muted:#666}
+
+button.flash-success {
+  background-color: #22c55e !important; /* xanh lá */
+  color: #fff !important;
+  transition: background-color 0.3s ease;
+}
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .phone {
+    width: 100%;
+    max-width: 420px;
+    height: 100vh;
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(10,10,10,0.12);
+    border: 1px solid #e6e6e6;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    flex: 0 0 auto;
+    padding: 12px 14px;
+    background: linear-gradient(180deg,#fff,#fbfbfb);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 1px solid #eee;
+  }
+
+
+
+/* sửa: 2 cột khít nhau, nút giãn đầy cột, khoảng cách nhỏ */
+.grid-2col {
+  display: flex;
+  flex-wrap: nowrap;           /* không wrap */
+  justify-content: center;     /* căn giữa toàn khối */
+  align-items: flex-start;
+  gap: 6px;                    /* <--- giảm gap, sửa khoảng hở */
+  padding: 6px 8px;            /* giảm padding để 2 cột gần nhau */
+  box-sizing: border-box;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* mỗi cột chiếm 50% không ép thêm padding tạo gap */
+.grid-2col .col {
+  flex: 1 1 0;                 /* <--- thay flex để cột giãn đều */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  min-width: 170px;            /* vẫn giữ min-width để nút không quá nhỏ */
+  align-items: stretch;        /* nút kéo hết chiều ngang cột */
+}
+
+/* đảm bảo nút không bị giới hạn width ở chỗ khác */
+.same-size,
+.random-btn,
+button.small,
+.btn-ghost {
+  width: 100%;
+  max-width: none !important;
+  box-sizing: border-box;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.random-btn {
+  background: #8B0000;
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  height: 42px;
+  width: 100%;
+  max-width: 210px;             /* 🔸 tăng nhẹ để đồng bộ */
+}
+
+button.small {
+  height: 42px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  width: 100%;
+  max-width: 210px;             /* 🔸 đồng bộ */
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: var(--muted);
+  border-radius: 8px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 210px;             /* 🔸 giữ đồng bộ toàn hàng */
+}
+
+
+
+  .cell-label { font-weight:700; text-align:center; font-size:15px; padding:0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* display-card: CAPTION + TÊN SP (mặc định ẩn). Nó nằm cố định (không cuộn). */
+  .display-card {
+    background:#fff;
+    border:1px solid #eee;
+    padding:12px;
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 10;
+    background: #fff;
+    display: none; /* mặc định ẩn — sẽ bật khi nhấn nút Caption/Tên SP */
+  }
+  .display-card .meta { display:flex; gap:8px; align-items:center; justify-content:space-between; }
+  .display-card textarea { width:100%; height:50px; border:1px solid #f0f0f0; padding:8px; border-radius:6px; resize:vertical; }
+  .display-card input { width:100%; padding:8px; border-radius:6px; border:1px solid #f0f0f0; }
+
+  main {
+    flex: 1 1 auto;
+    overflow: hidden;
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* wrapper scroll riêng cho danh sách sản phẩm */
+  .product-list-wrapper {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+
+  .product-list-header {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 6;
+    padding: 8px 0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .product-list-header h3 { margin:0; font-size:15px; font-weight:700; }
+  .search-input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid #eee; }
+
+  .table { width:100%; border-collapse:collapse; }
+  .table tr{ border-bottom:1px solid #f2f2f2; }
+  .table td{ padding:8px; font-size:13px; vertical-align:middle; }
+  .table .actions {
+  display: flex;
+  flex-direction: column;   /* 2 nút xếp dọc */
+  gap: 4px;
+  align-items: stretch;
+  justify-content: center;
+}
+.table .actions button.small {
+  font-size: 12px;
+  height: 32px;
+  padding: 0 4px;
+}
+
+
+  .posted-dot{ display:inline-block; width:10px; height:10px; background:#ddd; border-radius:50%; }
+  .posted-true{ background:green; }
+
+  footer{
+    flex:0 0 auto;
+    padding:10px;
+    text-align:center;
+    font-size:12px;
+    color:var(--muted);
+    background:#fcfcfc;
+    border-top:1px solid #f2f2f2;
+  }
+
+  .hist-list{ max-height:140px; overflow:auto; padding:6px; border:1px dashed #eee; border-radius:6px; background:#fff; }
+
+  /* modal overlay for manual input */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .modal {
+    width: min(640px, 92%);
+    background:#fff;
+    border-radius:10px;
+    padding:12px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.2);
+  }
+  .modal textarea { width:100%; height:180px; border:1px solid #eee; padding:8px; border-radius:6px; }
+  .modal .row { display:flex; gap:8px; margin-top:8px; justify-content:flex-end; }
+
+  /* small helpers */
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+  <div class="phone" role="application">
+
+<header>
+	<header style="display:flex;flex-direction:column;align-items:center;">
+  <div id="summary" class="summary" style="text-align:center;color:#b30000;font-weight:800;text-transform:uppercase;font-size:14px;padding:8px 0;">ĐÃ ĐĂNG 0/0 SẢN PHẨM</div>
+
+  <div class="grid-2col">
+    <div class="col" style="flex:1;">
+      <button id="randomBtn" class="random-btn same-size">Random Sản phẩm</button>
+      <button id="downloadBtn" class="small same-size">Copy Link Video</button>
+      <button id="copyCaptionBtn" class="small same-size">Copy Caption</button>
+      <button id="copyShopeeBtn" class="small same-size">Copy Link Shopee</button>
+      <button id="toggleCaptionBtn" class="btn-ghost small same-size">Caption/Tên SP</button>
+    </div>
+
+    <div class="col" style="flex:1;align-items:flex-end;">
+      <div class="same-size cell-label" id="currentName">Sản phẩm -</div>
+      <button id="importPostedBtn" class="btn-ghost small same-size">Nhập SP đã đăng</button>
+      <button id="copyPostedBtn" class="btn-ghost small same-size">Copy SP đã đăng</button>
+      <button id="historyToggle" class="btn-ghost small same-size">Lịch sử</button>
+      <button id="clearHistory" class="btn-ghost small same-size">Xóa Lịch sử</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- CAPTION + TÊN SP (mặc định ẩn). Toggle bằng nút Caption/Tên SP -->
+  <div class="display-card" id="captionBox">
+    <div style="font-weight:700">Caption / Tên Sản Phẩm</div>
+    <div>
+      <div><label>Caption:</label></div>
+      <textarea id="displayCaption" readonly></textarea>
+    </div>
+    <div>
+      <div><label>Tên Sản Phẩm Tiktok</label></div>
+      <input id="displayShopee" readonly />
+    </div>
+  </div>
+
+  <div id="historySection" style="display:none; margin-top:8px;">
+    <div style="font-weight:700;margin-bottom:6px">Lịch sử Random / Đăng</div>
+    <div class="hist-list" id="historyList"></div>
+  </div>
+
+  <div class="product-list-wrapper" id="productListWrapper">
+    <div class="product-list-header">
+      <h3>Danh sách sản phẩm</h3>
+      <input id="searchInput" class="search-input" placeholder="Tìm theo số (#1) hoặc từ khóa..." />
+    </div>
+
+    <table class="table" id="productTable">
+      <tbody id="productRows"></tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>Offline — dữ liệu lưu trong localStorage trên máy này</footer>
+  </div>
+
+  <!-- Modal cho Nhập SP đã đăng -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div style="font-weight:700;margin-bottom:8px">Nhập danh sách sản phẩm đã đăng</div>
+      <div style="font-size:13px;color:#555;margin-bottom:6px">Dán hoặc nhập danh sách (mỗi dòng chứa ID, hoặc "Sản phẩm 5", hoặc "#5").</div>
+      <textarea id="manualPostedTextarea" placeholder="Ví dụ: Sản phẩm 1
+#5
+10"></textarea>
+      <div class="row">
+        <button id="modalCancelBtn" class="btn-ghost">Hủy</button>
+        <button id="modalImportBtn" class="small">Nhập</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const PRODUCTS = [{"id":1,"linkVideoRaw":"https://drive.google.com/file/d/1W6jt6lpFMpApg2n1CYzKBTZN4LTKYl8Q/view?usp=drivesdk","caption":"Gel chống nắng Anessa Gold Gel SPF50 dưỡng ẩm 90g","shopee":"https://shopee.vn/product/58411241/2029406216"},{"id":2,"linkVideoRaw":"https://drive.google.com/file/d/1g7l626rhltxeNbzRe1VHXsk1Nb9CfusQ/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk SPF50 cho da nhạy cảm","shopee":"https://shopee.vn/product/58411241/2029406796"},{"id":3,"linkVideoRaw":"https://drive.google.com/file/d/1WQsa8NAMOCAD3txrgM_WT54ToDw7bz8B/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk SPF50 cho da nhạy cảm","shopee":"https://shopee.vn/product/58411241/2029406796"},{"id":4,"linkVideoRaw":"https://drive.google.com/file/d/1leUuFYDT1T0-n8JHs3PfaZKNa0T_J7vC/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk SPF50 cho da nhạy cảm","shopee":"https://shopee.vn/product/58411241/2029406796"},{"id":5,"linkVideoRaw":"https://drive.google.com/file/d/1UzqjAVAZqqbprK_w2mY_y28gXpgrz4bY/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk SPF50 cho da nhạy cảm","shopee":"https://shopee.vn/product/58411241/2029406796"},{"id":6,"linkVideoRaw":"https://drive.google.com/file/d/1KU-S1KJqThLhOPIawL0bBCfGQSLcJ7Qk/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk SPF50 cho da nhạy cảm","shopee":"https://shopee.vn/product/58411241/2029406796"},{"id":7,"linkVideoRaw":"https://drive.google.com/file/d/1119xWZT8CXc_c4DdbUgoV7USC7KqAVjC/view?usp=drivesdk","caption":"Serum chống nắng Anessa Day Serum SPF50 nâng tông 30ml","shopee":"https://shopee.vn/product/58411241/19412002968"},{"id":8,"linkVideoRaw":"https://drive.google.com/file/d/1vbkKSVYrZ_bXALZ9acZ1i9EP0AroXjtE/view?usp=drivesdk","caption":"Serum chống nắng Anessa Day Serum SPF50 nâng tông 30ml","shopee":"https://shopee.vn/product/58411241/19412002968"},{"id":9,"linkVideoRaw":"https://drive.google.com/file/d/1PLdeE8mSzsJweQVzm3lPu5sjFKw3CAxD/view?usp=drivesdk","caption":"Serum chống nắng Anessa Day Serum SPF50 nâng tông 30ml","shopee":"https://shopee.vn/product/58411241/19412002968"},{"id":10,"linkVideoRaw":"https://drive.google.com/file/d/1jjCHuX8htWlS5puWaKsElQ4ZtgscOhVc/view?usp=drivesdk","caption":"Serum chống nắng Anessa Day Serum SPF50 nâng tông 30ml","shopee":"https://shopee.vn/product/58411241/19412002968"},{"id":11,"linkVideoRaw":"https://drive.google.com/file/d/15mcWdJ2FsJUvQr3ttEhB6K7j_sdnVI8m/view?usp=drivesdk","caption":"Serum chống nắng Anessa Day Serum SPF50 nâng tông 30ml","shopee":"https://shopee.vn/product/58411241/19412002968"},{"id":12,"linkVideoRaw":"https://drive.google.com/file/d/1DortYqApSTfRIN-UsdNfl_XRrpNnPtU8/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 20ml","shopee":"https://shopee.vn/product/58411241/2029406185"},{"id":13,"linkVideoRaw":"https://drive.google.com/file/d/1KjqLu7p0y-wgHKHwhhzRsYll36k5aoUT/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 20ml","shopee":"https://shopee.vn/product/58411241/2029406185"},{"id":14,"linkVideoRaw":"https://drive.google.com/file/d/1treAk0xy50XhixqSHrwmekqdGLJl2cG0/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 20ml","shopee":"https://shopee.vn/product/58411241/2029406185"},{"id":15,"linkVideoRaw":"https://drive.google.com/file/d/1gswvY5HWAo2hTFwZ4X4t3vozZh5YpZ4H/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 20ml","shopee":"https://shopee.vn/product/58411241/2029406185"},{"id":16,"linkVideoRaw":"https://drive.google.com/file/d/1Q-VbXYiq-t0kT6ebMl7YPjGlUjGA-5Hc/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 20ml","shopee":"https://shopee.vn/product/58411241/2029406185"},{"id":17,"linkVideoRaw":"https://drive.google.com/file/d/1guUxDBfjxQ-Z2e736c_7iTE-cTqN9fmF/view?usp=drivesdk","caption":"Bộ 2 Gel chống nắng Anessa SPF50 dưỡng sáng 90g","shopee":"https://shopee.vn/product/58411241/21590104034"},{"id":18,"linkVideoRaw":"https://drive.google.com/file/d/11gtxjGbcThO-DLk0uzlBS_zOmfE__jiG/view?usp=drivesdk","caption":"Bộ 2 Gel chống nắng Anessa SPF50 dưỡng sáng 90g","shopee":"https://shopee.vn/product/58411241/21590104034"},{"id":19,"linkVideoRaw":"https://drive.google.com/file/d/19RbCrCBhSjlUb0_D11q2Qxxw6SZgKNiU/view?usp=drivesdk","caption":"Bộ 2 Gel chống nắng Anessa SPF50 dưỡng sáng 90g","shopee":"https://shopee.vn/product/58411241/21590104034"},{"id":20,"linkVideoRaw":"https://drive.google.com/file/d/1EqWvw_NNwXwH2Ya5F65CWIW8nEEMvmFu/view?usp=drivesdk","caption":"Bộ 2 Gel chống nắng Anessa SPF50 dưỡng sáng 90g","shopee":"https://shopee.vn/product/58411241/21590104034"},{"id":21,"linkVideoRaw":"https://drive.google.com/file/d/1EjMYU6Xm0XebM3Fs_F9ghE4CTD_RVuNU/view?usp=drivesdk","caption":"Bộ 2 Gel chống nắng Anessa SPF50 dưỡng sáng 90g","shopee":"https://shopee.vn/product/58411241/21590104034"},{"id":22,"linkVideoRaw":"https://drive.google.com/file/d/1r3Har-QYYt7ovo5eryKeGfs5VManV11B/view?usp=drivesdk","caption":"Xịt chống nắng Anessa Gold Spray SPF50 bảo vệ da","shopee":"https://shopee.vn/product/58411241/2029406217"},{"id":23,"linkVideoRaw":"https://drive.google.com/file/d/13V9aU5tSZAFunjkxrefW_uauVJw6tqYX/view?usp=drivesdk","caption":"Xịt chống nắng Anessa Gold Spray SPF50 bảo vệ da","shopee":"https://shopee.vn/product/58411241/2029406217"},{"id":24,"linkVideoRaw":"https://drive.google.com/file/d/1WrvuqbUJ4ChJqbwvxDGz55IeiijcFLlV/view?usp=drivesdk","caption":"Xịt chống nắng Anessa Gold Spray SPF50 bảo vệ da","shopee":"https://shopee.vn/product/58411241/2029406217"},{"id":25,"linkVideoRaw":"https://drive.google.com/file/d/1QWABTfCqFpf2eBHKnwmzlib3EUWYqz-0/view?usp=drivesdk","caption":"Xịt chống nắng Anessa Gold Spray SPF50 bảo vệ da","shopee":"https://shopee.vn/product/58411241/2029406217"},{"id":26,"linkVideoRaw":"https://drive.google.com/file/d/1-uy_eikztK9vx_miK7B5FIDCH4seyGNv/view?usp=drivesdk","caption":"Xịt chống nắng Anessa Gold Spray SPF50 bảo vệ da","shopee":"https://shopee.vn/product/58411241/2029406217"},{"id":27,"linkVideoRaw":"https://drive.google.com/file/d/1DBJbA8h8IiFuowkHu86k1AaHF8LvB2Gk/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Gold Milk SPF50 60ml","shopee":"https://shopee.vn/product/58411241/14963181357"},{"id":28,"linkVideoRaw":"https://drive.google.com/file/d/16QDSirYTotFONvWiJPmXY_zm93c-Roqk/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Gold Milk SPF50 60ml","shopee":"https://shopee.vn/product/58411241/14963181357"},{"id":29,"linkVideoRaw":"https://drive.google.com/file/d/1w1s6pKk0c-vQE26aY6OS2NRATSWoFj2Q/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Gold Milk SPF50 60ml","shopee":"https://shopee.vn/product/58411241/14963181357"},{"id":30,"linkVideoRaw":"https://drive.google.com/file/d/17vK4IlP-SmFJazK0MNAHtitQtr3Je1bU/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Gold Milk SPF50 60ml","shopee":"https://shopee.vn/product/58411241/14963181357"},{"id":31,"linkVideoRaw":"https://drive.google.com/file/d/11Gzu2Dn3HMWlsY4pJBg-1K2ZrKfxWuAI/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Gold Milk SPF50 60ml","shopee":"https://shopee.vn/product/58411241/14963181357"},{"id":32,"linkVideoRaw":"https://drive.google.com/file/d/1JvWsi7jLRknbLzMlEgGyS7LL4QN6nEF5/view?usp=drivesdk","caption":"Combo Sữa chống nắng Anessa Gold Milk 60ml và 20ml","shopee":"https://shopee.vn/product/58411241/2029406181"},{"id":33,"linkVideoRaw":"https://drive.google.com/file/d/1Fxve4nZcfAdgh3O85Hsti4RzSPFD1ymo/view?usp=drivesdk","caption":"Combo Sữa chống nắng Anessa Gold Milk 60ml và 20ml","shopee":"https://shopee.vn/product/58411241/2029406181"},{"id":34,"linkVideoRaw":"https://drive.google.com/file/d/1oc_dtfSUaSLGMVjZY9RQZ7ZpPlOA2s-m/view?usp=drivesdk","caption":"Combo Sữa chống nắng Anessa Gold Milk 60ml và 20ml","shopee":"https://shopee.vn/product/58411241/2029406181"},{"id":35,"linkVideoRaw":"https://drive.google.com/file/d/18yHaWg7zn6j_-HbEqQFpWdW5wIUV8vIc/view?usp=drivesdk","caption":"Combo Sữa chống nắng Anessa Gold Milk 60ml và 20ml","shopee":"https://shopee.vn/product/58411241/2029406181"},{"id":36,"linkVideoRaw":"https://drive.google.com/file/d/1AvFrHTHbyVRm1Uen84kS_s7kWdq2mwtF/view?usp=drivesdk","caption":"Combo Sữa chống nắng Anessa Gold Milk 60ml và 20ml","shopee":"https://shopee.vn/product/58411241/2029406181"},{"id":37,"linkVideoRaw":"https://drive.google.com/file/d/1zDPqsSyRj5h4H5e0jktJtJYSeRV9HyI0/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Mild Milk da nhạy cảm","shopee":"https://shopee.vn/product/58411241/8273131355"},{"id":38,"linkVideoRaw":"https://drive.google.com/file/d/1yzgg5CP9zAUktB1KFNYIHBpXXEmsuQJ6/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Mild Milk da nhạy cảm","shopee":"https://shopee.vn/product/58411241/8273131355"},{"id":39,"linkVideoRaw":"https://drive.google.com/file/d/1O-ba1xamZU_XhwrDxuAIPs_Bf2JpqB4w/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Mild Milk da nhạy cảm","shopee":"https://shopee.vn/product/58411241/8273131355"},{"id":40,"linkVideoRaw":"https://drive.google.com/file/d/15rhnhQ3y1OVKDSu4v8uebwDRaG3cVfBl/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Mild Milk da nhạy cảm","shopee":"https://shopee.vn/product/58411241/8273131355"},{"id":41,"linkVideoRaw":"https://drive.google.com/file/d/12YAQH0qekboq_PVicqupXOId1drfYs9k/view?usp=drivesdk","caption":"Combo 2 Sữa chống nắng Anessa Mild Milk da nhạy cảm","shopee":"https://shopee.vn/product/58411241/8273131355"},{"id":42,"linkVideoRaw":"https://drive.google.com/file/d/1b9wvVyP5QEksVkywZve7GTIAVSrlxvnM/view?usp=drivesdk","caption":"Gel chống nắng Anessa Brightening Gel dưỡng sáng tím 90g","shopee":"https://shopee.vn/product/58411241/2029406199"},{"id":43,"linkVideoRaw":"https://drive.google.com/file/d/1nfdC5d3rOYZ963cbRbd6PDxQMrAQ_l9U/view?usp=drivesdk","caption":"Gel chống nắng Anessa Brightening Gel dưỡng sáng tím 90g","shopee":"https://shopee.vn/product/58411241/2029406199"},{"id":44,"linkVideoRaw":"https://drive.google.com/file/d/1H0J_JIawBHASjRxktO4pOjPipDgqPlvc/view?usp=drivesdk","caption":"Gel chống nắng Anessa Brightening Gel dưỡng sáng tím 90g","shopee":"https://shopee.vn/product/58411241/2029406199"},{"id":45,"linkVideoRaw":"https://drive.google.com/file/d/1aayGz0XRzQMHc1gNtc6VRaw4fujVHTBi/view?usp=drivesdk","caption":"Gel chống nắng Anessa Brightening Gel dưỡng sáng tím 90g","shopee":"https://shopee.vn/product/58411241/2029406199"},{"id":46,"linkVideoRaw":"https://drive.google.com/file/d/1C2gxK4WNuoC8e4YfrpvS4xcFLkFt3Wun/view?usp=drivesdk","caption":"Gel chống nắng Anessa Brightening Gel dưỡng sáng tím 90g","shopee":"https://shopee.vn/product/58411241/2029406199"},{"id":47,"linkVideoRaw":"https://drive.google.com/file/d/1bta3SU8wcG4aUaEv1ysYwLwJBwbtGKQj/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 60ml","shopee":"https://shopee.vn/product/58411241/2029406183"},{"id":48,"linkVideoRaw":"https://drive.google.com/file/d/1UkmfddqAssrP7DhOHRUTrzaXJ2nRlaXi/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 60ml","shopee":"https://shopee.vn/product/58411241/2029406183"},{"id":49,"linkVideoRaw":"https://drive.google.com/file/d/19nBcTS8YlsESjE8jfoOEbw3uPKNFxU0r/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 60ml","shopee":"https://shopee.vn/product/58411241/2029406183"},{"id":50,"linkVideoRaw":"https://drive.google.com/file/d/1l-91qeUK6Yt-kfCBWgHnENZZ8MPKzcAB/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 60ml","shopee":"https://shopee.vn/product/58411241/2029406183"},{"id":51,"linkVideoRaw":"https://drive.google.com/file/d/1Wc7WiY4deDXjWqmVM2qe8rcP8oqcH9h3/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Gold Milk SPF50 kiềm dầu 60ml","shopee":"https://shopee.vn/product/58411241/2029406183"},{"id":52,"linkVideoRaw":"https://drive.google.com/file/d/1GUuUbgQNWVyq8gGLEljnXXe7b56_VzJS/view?usp=drivesdk","caption":"Combo 2 Gel chống nắng Anessa Gold Gel SPF50 90g","shopee":"https://shopee.vn/product/58411241/22584401881"},{"id":53,"linkVideoRaw":"https://drive.google.com/file/d/1KoGmPzWS6URjeVUU84W0kboVTSmj07tX/view?usp=drivesdk","caption":"Combo 2 Gel chống nắng Anessa Gold Gel SPF50 90g","shopee":"https://shopee.vn/product/58411241/22584401881"},{"id":54,"linkVideoRaw":"https://drive.google.com/file/d/1j2zVD9NRD6SuEREq3S6oTlGWurnawem1/view?usp=drivesdk","caption":"Combo 2 Gel chống nắng Anessa Gold Gel SPF50 90g","shopee":"https://shopee.vn/product/58411241/22584401881"},{"id":55,"linkVideoRaw":"https://drive.google.com/file/d/1FBTBJPYyoEzChYDPTZChhbQueBp9QBa7/view?usp=drivesdk","caption":"Combo 2 Gel chống nắng Anessa Gold Gel SPF50 90g","shopee":"https://shopee.vn/product/58411241/22584401881"},{"id":56,"linkVideoRaw":"https://drive.google.com/file/d/1lCJnuD1CIqqtkVbmAq3Q-xWwOr6ZqYO-/view?usp=drivesdk","caption":"Combo 2 Gel chống nắng Anessa Gold Gel SPF50 90g","shopee":"https://shopee.vn/product/58411241/22584401881"},{"id":57,"linkVideoRaw":"https://drive.google.com/file/d/1MxgqvHnHfF6jBg5JRZ3vWsYzFa1CfFRw/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk da nhạy cảm 60ml","shopee":"https://shopee.vn/product/58411241/28707877072"},{"id":58,"linkVideoRaw":"https://drive.google.com/file/d/1nu17dyZIKpwiN-RPS7QxMCUAHcPMVTE8/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk da nhạy cảm 60ml","shopee":"https://shopee.vn/product/58411241/28707877072"},{"id":59,"linkVideoRaw":"https://drive.google.com/file/d/1j0TjQd6k0WaBAIUDzdBKZXGxml9-Xedz/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk da nhạy cảm 60ml","shopee":"https://shopee.vn/product/58411241/28707877072"},{"id":60,"linkVideoRaw":"https://drive.google.com/file/d/1tJxA2OCg2PlRhYiHYaet2-BnTucpar9G/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk da nhạy cảm 60ml","shopee":"https://shopee.vn/product/58411241/28707877072"},{"id":61,"linkVideoRaw":"https://drive.google.com/file/d/1h7TSgZcqqC023XdMi-XQs0osMQFlwceI/view?usp=drivesdk","caption":"Sữa chống nắng Anessa Mild Milk da nhạy cảm 60ml","shopee":"https://shopee.vn/product/58411241/28707877072"},{"id":62,"linkVideoRaw":"https://drive.google.com/file/d/1-FF6mNpp8tGX-_um1Xrh0nf83oG55Cmn/view?usp=drivesdk","caption":"Bộ đôi sữa chống nắng Anessa Perfect UV Skincare Milk","shopee":"https://shopee.vn/product/58411241/25934755654"},{"id":63,"linkVideoRaw":"https://drive.google.com/file/d/1X9gwOVctZn-GhQARhBFMruPaMBVSy4em/view?usp=drivesdk","caption":"Bộ đôi sữa chống nắng Anessa Perfect UV Skincare Milk","shopee":"https://shopee.vn/product/58411241/25934755654"},{"id":64,"linkVideoRaw":"https://drive.google.com/file/d/1wDqVSM-A-ROSesu3W2zGAJhM5T0Xpt1c/view?usp=drivesdk","caption":"Bộ đôi sữa chống nắng Anessa Perfect UV Skincare Milk","shopee":"https://shopee.vn/product/58411241/25934755654"},{"id":65,"linkVideoRaw":"https://drive.google.com/file/d/12tiS3aHosuOBHr-4mNIXyZGyeIGMaVjg/view?usp=drivesdk","caption":"Bộ đôi sữa chống nắng Anessa Perfect UV Skincare Milk","shopee":"https://shopee.vn/product/58411241/25934755654"},{"id":66,"linkVideoRaw":"https://drive.google.com/file/d/1uf68C2MABltckQip-5Gq4pK9qTYLBwPH/view?usp=drivesdk","caption":"Bộ đôi sữa chống nắng Anessa Perfect UV Skincare Milk","shopee":"https://shopee.vn/product/58411241/25934755654"},{"id":67,"linkVideoRaw":"https://drive.google.com/file/d/1Iz-9-CfVmuGGS6k7rSurpbvn98qn8jAV/view?usp=drivesdk","caption":"Son kem Maybelline Superstay Teddy Tint bền màu 5ml","shopee":"https://shopee.vn/product/37252407/26609453496"},{"id":68,"linkVideoRaw":"https://drive.google.com/file/d/1HDlp4AL_Pq2WDHl6do1ASgkP7OStQrR_/view?usp=drivesdk","caption":"Son kem Maybelline Superstay Teddy Tint bền màu 5ml","shopee":"https://shopee.vn/product/37252407/26609453496"},{"id":69,"linkVideoRaw":"https://drive.google.com/file/d/1DlMzIW_gY3-sxjBY-bNX1pglOwGBwKF0/view?usp=drivesdk","caption":"Son kem Maybelline Superstay Teddy Tint bền màu 5ml","shopee":"https://shopee.vn/product/37252407/26609453496"},{"id":70,"linkVideoRaw":"https://drive.google.com/file/d/15Rnu9kPXq6MenBCN3kx6IBjMZk558Ir-/view?usp=drivesdk","caption":"Son kem Maybelline Superstay Teddy Tint bền màu 5ml","shopee":"https://shopee.vn/product/37252407/26609453496"},{"id":71,"linkVideoRaw":"https://drive.google.com/file/d/1J998bcKlUj58h-jAbwGOJEqySPDI1nwm/view?usp=drivesdk","caption":"Son kem Maybelline Superstay Teddy Tint bền màu 5ml","shopee":"https://shopee.vn/product/37252407/26609453496"},{"id":72,"linkVideoRaw":"https://drive.google.com/file/d/1xtsZKb1S1ItFhSQcPw1hZpooyow1SKB9/view?usp=drivesdk","caption":"Kem nền bắt sáng Maybelline Superstay Lumi Matte 30H 35ml","shopee":"https://shopee.vn/product/37252407/29650093802"},{"id":73,"linkVideoRaw":"https://drive.google.com/file/d/1SNGy13ByKVWmK3S-6c1sBlEElu5xtMkx/view?usp=drivesdk","caption":"Kem nền bắt sáng Maybelline Superstay Lumi Matte 30H 35ml","shopee":"https://shopee.vn/product/37252407/29650093802"},{"id":74,"linkVideoRaw":"https://drive.google.com/file/d/1cPf_cGP4CN95X1FI4CR_GC__kznoukIT/view?usp=drivesdk","caption":"Kem nền bắt sáng Maybelline Superstay Lumi Matte 30H 35ml","shopee":"https://shopee.vn/product/37252407/29650093802"},{"id":75,"linkVideoRaw":"https://drive.google.com/file/d/193N_QrKTFS9eCL-bq08VfDQRPfnRbQQH/view?usp=drivesdk","caption":"Kem nền bắt sáng Maybelline Superstay Lumi Matte 30H 35ml","shopee":"https://shopee.vn/product/37252407/29650093802"},{"id":76,"linkVideoRaw":"https://drive.google.com/file/d/1-IV2rFYMnJje6TBTQRgCY2Djnn8PeZLB/view?usp=drivesdk","caption":"Kem nền bắt sáng Maybelline Superstay Lumi Matte 30H 35ml","shopee":"https://shopee.vn/product/37252407/29650093802"},{"id":77,"linkVideoRaw":"https://drive.google.com/file/d/1rdTWJcX3b_Qrx1_dWm4z8YaqnBAlBpOW/view?usp=drivesdk","caption":"Kem nền Maybelline Fit Me Matte Poreless kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/2356429108"},{"id":78,"linkVideoRaw":"https://drive.google.com/file/d/1jg9bVjRw2kbz8jm3yV8u1lKtF0_efcQe/view?usp=drivesdk","caption":"Kem nền Maybelline Fit Me Matte Poreless kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/2356429108"},{"id":79,"linkVideoRaw":"https://drive.google.com/file/d/1ZaoUvCCi_L9pq_6-qRkhykvKK_nUWv6H/view?usp=drivesdk","caption":"Kem nền Maybelline Fit Me Matte Poreless kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/2356429108"},{"id":80,"linkVideoRaw":"https://drive.google.com/file/d/16BIusSn6IhJtFYXAqT52hZP_1sx_r8pp/view?usp=drivesdk","caption":"Kem nền Maybelline Fit Me Matte Poreless kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/2356429108"},{"id":81,"linkVideoRaw":"https://drive.google.com/file/d/1z0WTb9r5Fol2AKojOtbNrTWPTQkXLjic/view?usp=drivesdk","caption":"Kem nền Maybelline Fit Me Matte Poreless kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/2356429108"},{"id":82,"linkVideoRaw":"https://drive.google.com/file/d/1Uv-b_JQyxOFTENoQ709r2fIOS4JfUXFb/view?usp=drivesdk","caption":"Kem che khuyết điểm Maybelline Fit Me mịn lì 6.8ml","shopee":"https://shopee.vn/product/37252407/665012011"},{"id":83,"linkVideoRaw":"https://drive.google.com/file/d/1Wgl3SeGbJ_CrpKLt6IGdDJq3W72AzO3H/view?usp=drivesdk","caption":"Kem che khuyết điểm Maybelline Fit Me mịn lì 6.8ml","shopee":"https://shopee.vn/product/37252407/665012011"},{"id":84,"linkVideoRaw":"https://drive.google.com/file/d/1qv3O6RciE9ROYpjbK2OTC6mHUKMSVcLe/view?usp=drivesdk","caption":"Kem che khuyết điểm Maybelline Fit Me mịn lì 6.8ml","shopee":"https://shopee.vn/product/37252407/665012011"},{"id":85,"linkVideoRaw":"https://drive.google.com/file/d/1cPUFv7ZCAZT1OxuWYOmpK9iYPe9frik2/view?usp=drivesdk","caption":"Kem che khuyết điểm Maybelline Fit Me mịn lì 6.8ml","shopee":"https://shopee.vn/product/37252407/665012011"},{"id":86,"linkVideoRaw":"https://drive.google.com/file/d/1Uc2uIXwZMxhzYm8h4hOxNf2jtVNUmtWL/view?usp=drivesdk","caption":"Kem che khuyết điểm Maybelline Fit Me mịn lì 6.8ml","shopee":"https://shopee.vn/product/37252407/665012011"},{"id":87,"linkVideoRaw":"https://drive.google.com/file/d/1zB82lGOtSdLcGas6uiCw5zmBEY60JEnt/view?usp=drivesdk","caption":"Son bóng Maybelline Lifter Gloss căng mọng môi 5.4ml","shopee":"https://shopee.vn/product/37252407/27481696313"},{"id":88,"linkVideoRaw":"https://drive.google.com/file/d/1k0BQh-RVjSSmTZg1bjbGDP32KjUlzpM1/view?usp=drivesdk","caption":"Son bóng Maybelline Lifter Gloss căng mọng môi 5.4ml","shopee":"https://shopee.vn/product/37252407/27481696313"},{"id":89,"linkVideoRaw":"https://drive.google.com/file/d/1_ArUuL3UBiK6KEi2L0Xeo1LF6MQb8iHX/view?usp=drivesdk","caption":"Son bóng Maybelline Lifter Gloss căng mọng môi 5.4ml","shopee":"https://shopee.vn/product/37252407/27481696313"},{"id":90,"linkVideoRaw":"https://drive.google.com/file/d/1MTpeRp71v7KuMI6_hq91kJDZBAqFhXqC/view?usp=drivesdk","caption":"Son bóng Maybelline Lifter Gloss căng mọng môi 5.4ml","shopee":"https://shopee.vn/product/37252407/27481696313"},{"id":91,"linkVideoRaw":"https://drive.google.com/file/d/1Taj9wGxyIe5zOZ60efRg7I0L-WMQfQya/view?usp=drivesdk","caption":"Son bóng Maybelline Lifter Gloss căng mọng môi 5.4ml","shopee":"https://shopee.vn/product/37252407/27481696313"},{"id":92,"linkVideoRaw":"https://drive.google.com/file/d/1iO2vJfWnF0wCUc393x9NZUfLwrNoB8fz/view?usp=drivesdk","caption":"Mascara Maybelline Hyper Curl làm cong mi không trôi","shopee":"https://shopee.vn/product/37252407/581704324"},{"id":93,"linkVideoRaw":"https://drive.google.com/file/d/1HCcUmb0VkYw1AQE-VKEtZo5W-M4wLD2M/view?usp=drivesdk","caption":"Mascara Maybelline Hyper Curl làm cong mi không trôi","shopee":"https://shopee.vn/product/37252407/581704324"},{"id":94,"linkVideoRaw":"https://drive.google.com/file/d/1_rMPiD1ESC5KMd-Qg4_Y2GSNQmd8GRmB/view?usp=drivesdk","caption":"Mascara Maybelline Hyper Curl làm cong mi không trôi","shopee":"https://shopee.vn/product/37252407/581704324"},{"id":95,"linkVideoRaw":"https://drive.google.com/file/d/1A89GT-wvEwST6-0PB_1sZkA7bM9GXAP4/view?usp=drivesdk","caption":"Mascara Maybelline Hyper Curl làm cong mi không trôi","shopee":"https://shopee.vn/product/37252407/581704324"},{"id":96,"linkVideoRaw":"https://drive.google.com/file/d/15OXDhdTYs4PQGd8HyfmE_bTliUtc0tTv/view?usp=drivesdk","caption":"Mascara Maybelline Hyper Curl làm cong mi không trôi","shopee":"https://shopee.vn/product/37252407/581704324"},{"id":97,"linkVideoRaw":"https://drive.google.com/file/d/1MbHFNTmJe8Rxcss72G5_pxGzw-wB2gKn/view?usp=drivesdk","caption":"Son bóng bền màu Maybelline Superstay Vinyl Ink 4.2ml","shopee":"https://shopee.vn/product/37252407/22415159945"},{"id":98,"linkVideoRaw":"https://drive.google.com/file/d/1LGOyqy_o7kVujcOaatMfCe_uGvXrDB6N/view?usp=drivesdk","caption":"Son bóng bền màu Maybelline Superstay Vinyl Ink 4.2ml","shopee":"https://shopee.vn/product/37252407/22415159945"},{"id":99,"linkVideoRaw":"https://drive.google.com/file/d/1i5EHwa4dvIGv7gIzMkgeAtSXfGrL7-Si/view?usp=drivesdk","caption":"Son bóng bền màu Maybelline Superstay Vinyl Ink 4.2ml","shopee":"https://shopee.vn/product/37252407/22415159945"},{"id":100,"linkVideoRaw":"https://drive.google.com/file/d/1W7oTvVNrpNrnCfXugrYH3_27Gaf8A9Xc/view?usp=drivesdk","caption":"Son bóng bền màu Maybelline Superstay Vinyl Ink 4.2ml","shopee":"https://shopee.vn/product/37252407/22415159945"},{"id":101,"linkVideoRaw":"https://drive.google.com/file/d/1l7ch8ocRT8BZlzjrepAoIHJo9V61Lc_U/view?usp=drivesdk","caption":"Son bóng bền màu Maybelline Superstay Vinyl Ink 4.2ml","shopee":"https://shopee.vn/product/37252407/22415159945"},{"id":102,"linkVideoRaw":"https://drive.google.com/file/d/1J5hJWeoX4hwK4v_MHYha6ImygdiT7-HH/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Superstay Double Fixer lâu trôi","shopee":"https://shopee.vn/product/37252407/40123340894"},{"id":103,"linkVideoRaw":"https://drive.google.com/file/d/1wDsWYHi5d2lE4HDgA1b1NN0uKEwiFEwo/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Superstay Double Fixer lâu trôi","shopee":"https://shopee.vn/product/37252407/40123340894"},{"id":104,"linkVideoRaw":"https://drive.google.com/file/d/18sa9H2aPPwNmkHbTtmc5bvUZGriyBG0N/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Superstay Double Fixer lâu trôi","shopee":"https://shopee.vn/product/37252407/40123340894"},{"id":105,"linkVideoRaw":"https://drive.google.com/file/d/1x2dPLyFIKslg7-WJTuo5RfQdHQ254lQI/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Superstay Double Fixer lâu trôi","shopee":"https://shopee.vn/product/37252407/40123340894"},{"id":106,"linkVideoRaw":"https://drive.google.com/file/d/167iw3zbr80JBIWA-X7bpJ6LV9G7KawdD/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Superstay Double Fixer lâu trôi","shopee":"https://shopee.vn/product/37252407/40123340894"},{"id":107,"linkVideoRaw":"https://drive.google.com/file/d/1y9tnRzvKTz7BY9A9zL-NvWIjPCdXQHGW/view?usp=drivesdk","caption":"Phấn má hồng Maybelline Fit Me mịn lì 4.5g","shopee":"https://shopee.vn/product/37252407/20553741301"},{"id":108,"linkVideoRaw":"https://drive.google.com/file/d/10UKKoxkMYPnNTMywjDfT6cfP6KwVhS-h/view?usp=drivesdk","caption":"Phấn má hồng Maybelline Fit Me mịn lì 4.5g","shopee":"https://shopee.vn/product/37252407/20553741301"},{"id":109,"linkVideoRaw":"https://drive.google.com/file/d/1I7bVOwNcTa8L0aTTF27qkhTNIF0wgwbJ/view?usp=drivesdk","caption":"Phấn má hồng Maybelline Fit Me mịn lì 4.5g","shopee":"https://shopee.vn/product/37252407/20553741301"},{"id":110,"linkVideoRaw":"https://drive.google.com/file/d/15F_hYkUr19UKobUxRquCrF0tsCNsK-9W/view?usp=drivesdk","caption":"Phấn má hồng Maybelline Fit Me mịn lì 4.5g","shopee":"https://shopee.vn/product/37252407/20553741301"},{"id":111,"linkVideoRaw":"https://drive.google.com/file/d/10SizFVBXQ7qSKNnvmyxZX3hDXwBWyxsH/view?usp=drivesdk","caption":"Phấn má hồng Maybelline Fit Me mịn lì 4.5g","shopee":"https://shopee.vn/product/37252407/20553741301"},{"id":112,"linkVideoRaw":"https://drive.google.com/file/d/1jTvRvAaboZO9snqa4XyPK-4UldarnopX/view?usp=drivesdk","caption":"Nước tẩy trang mắt môi Maybelline New York 150ml","shopee":"https://shopee.vn/product/37252407/22735783796"},{"id":113,"linkVideoRaw":"https://drive.google.com/file/d/1UW3ilhNZzDr2xmIOV3GlnKBcA4UDMYCk/view?usp=drivesdk","caption":"Nước tẩy trang mắt môi Maybelline New York 150ml","shopee":"https://shopee.vn/product/37252407/22735783796"},{"id":114,"linkVideoRaw":"https://drive.google.com/file/d/1VEUE3szHWjkOZUpAG6qzhaCSxnxPSwVW/view?usp=drivesdk","caption":"Nước tẩy trang mắt môi Maybelline New York 150ml","shopee":"https://shopee.vn/product/37252407/22735783796"},{"id":115,"linkVideoRaw":"https://drive.google.com/file/d/1IKBU6xfXAvE8n1a2mbVO6ZHUZxNeqCWe/view?usp=drivesdk","caption":"Nước tẩy trang mắt môi Maybelline New York 150ml","shopee":"https://shopee.vn/product/37252407/22735783796"},{"id":116,"linkVideoRaw":"https://drive.google.com/file/d/1aTy5ETxfzJAUxH7K5e1OGSKgaabWE2qo/view?usp=drivesdk","caption":"Nước tẩy trang mắt môi Maybelline New York 150ml","shopee":"https://shopee.vn/product/37252407/22735783796"},{"id":117,"linkVideoRaw":"https://drive.google.com/file/d/1FxtxE6aBf8GFsfJQWjn6K1CD_t8jV59Z/view?usp=drivesdk","caption":"Má hồng kem Maybelline Sunkisser căng mọng 12H 4.7ml","shopee":"https://shopee.vn/product/37252407/26523475609"},{"id":118,"linkVideoRaw":"https://drive.google.com/file/d/1tR8fOYxVMtziuowWKP2Oj4dYoi82m_MU/view?usp=drivesdk","caption":"Má hồng kem Maybelline Sunkisser căng mọng 12H 4.7ml","shopee":"https://shopee.vn/product/37252407/26523475609"},{"id":119,"linkVideoRaw":"https://drive.google.com/file/d/1MSUpoGDr5HKJLkkAw4OCEwguUjPGlkit/view?usp=drivesdk","caption":"Má hồng kem Maybelline Sunkisser căng mọng 12H 4.7ml","shopee":"https://shopee.vn/product/37252407/26523475609"},{"id":120,"linkVideoRaw":"https://drive.google.com/file/d/1TbbI_4U1baaAd9XzL3t4u0PGSS7uZLPY/view?usp=drivesdk","caption":"Má hồng kem Maybelline Sunkisser căng mọng 12H 4.7ml","shopee":"https://shopee.vn/product/37252407/26523475609"},{"id":121,"linkVideoRaw":"https://drive.google.com/file/d/1KCd1A3pwz7ogb0FOzxJWHgMI_dkVBvsT/view?usp=drivesdk","caption":"Má hồng kem Maybelline Sunkisser căng mọng 12H 4.7ml","shopee":"https://shopee.vn/product/37252407/26523475609"},{"id":122,"linkVideoRaw":"https://drive.google.com/file/d/1ifkfnx_86IBx3cOOvGR5uGaEYrGthGDQ/view?usp=drivesdk","caption":"Phấn phủ Maybelline Fit Me Matte Poreless kiềm dầu 8.5g","shopee":"https://shopee.vn/product/37252407/708741817"},{"id":123,"linkVideoRaw":"https://drive.google.com/file/d/1zxvzjCLxReQzHUoanIxQH8f8BlTGySgc/view?usp=drivesdk","caption":"Phấn phủ Maybelline Fit Me Matte Poreless kiềm dầu 8.5g","shopee":"https://shopee.vn/product/37252407/708741817"},{"id":124,"linkVideoRaw":"https://drive.google.com/file/d/1oVThXyoGvJlq45SP_9dD-eemv1bEtuXt/view?usp=drivesdk","caption":"Phấn phủ Maybelline Fit Me Matte Poreless kiềm dầu 8.5g","shopee":"https://shopee.vn/product/37252407/708741817"},{"id":125,"linkVideoRaw":"https://drive.google.com/file/d/19-T1D0LAmWCiXUGAuQJAPYj5jzEPHUxA/view?usp=drivesdk","caption":"Phấn phủ Maybelline Fit Me Matte Poreless kiềm dầu 8.5g","shopee":"https://shopee.vn/product/37252407/708741817"},{"id":126,"linkVideoRaw":"https://drive.google.com/file/d/1gWad7ijEMDSAVMq8v8xbpYWGQGa8db2n/view?usp=drivesdk","caption":"Phấn phủ Maybelline Fit Me Matte Poreless kiềm dầu 8.5g","shopee":"https://shopee.vn/product/37252407/708741817"},{"id":127,"linkVideoRaw":"https://drive.google.com/file/d/12vTnjkAeLCH3SsRWMHxeMudXi0M5bmFk/view?usp=drivesdk","caption":"Kem lót Maybelline Fit Me Matte SPF20 kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/9378725916"},{"id":128,"linkVideoRaw":"https://drive.google.com/file/d/1gMM_wikbfPmHwcFtk0sFD_j3xN7MWTP_/view?usp=drivesdk","caption":"Kem lót Maybelline Fit Me Matte SPF20 kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/9378725916"},{"id":129,"linkVideoRaw":"https://drive.google.com/file/d/1nzTNtN7yPl-PxxRgQG5xygLYlYl6fQtc/view?usp=drivesdk","caption":"Kem lót Maybelline Fit Me Matte SPF20 kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/9378725916"},{"id":130,"linkVideoRaw":"https://drive.google.com/file/d/1uX1DpsyMYuZVxmsc939xzoFVKS6sZCje/view?usp=drivesdk","caption":"Kem lót Maybelline Fit Me Matte SPF20 kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/9378725916"},{"id":131,"linkVideoRaw":"https://drive.google.com/file/d/1uudhlngxpSXjeJuM7DS0aEoJMNFQac_u/view?usp=drivesdk","caption":"Kem lót Maybelline Fit Me Matte SPF20 kiềm dầu 30ml","shopee":"https://shopee.vn/product/37252407/9378725916"},{"id":132,"linkVideoRaw":"https://drive.google.com/file/d/1CgMzb_5nz03bxATVE3hPlRosTedQNIvk/view?usp=drivesdk","caption":"Phấn phủ nén Maybelline Fit Me SPF32 kiềm dầu","shopee":"https://shopee.vn/product/37252407/3617180562"},{"id":133,"linkVideoRaw":"https://drive.google.com/file/d/1eUkBneyk8BUR6Z6eFV1zJ-4LYzIp3uGV/view?usp=drivesdk","caption":"Phấn phủ nén Maybelline Fit Me SPF32 kiềm dầu","shopee":"https://shopee.vn/product/37252407/3617180562"},{"id":134,"linkVideoRaw":"https://drive.google.com/file/d/13vt8j84a2wsNjvsecO9DlkvKwLnj6AG-/view?usp=drivesdk","caption":"Phấn phủ nén Maybelline Fit Me SPF32 kiềm dầu","shopee":"https://shopee.vn/product/37252407/3617180562"},{"id":135,"linkVideoRaw":"https://drive.google.com/file/d/1QZ0fv06i0VEcRyWJVWI3nXUqx0Pvrpzi/view?usp=drivesdk","caption":"Phấn phủ nén Maybelline Fit Me SPF32 kiềm dầu","shopee":"https://shopee.vn/product/37252407/3617180562"},{"id":136,"linkVideoRaw":"https://drive.google.com/file/d/1K5LDkrafcBtUqbTpV8Md2jMBYCi-fJ5n/view?usp=drivesdk","caption":"Phấn phủ nén Maybelline Fit Me SPF32 kiềm dầu","shopee":"https://shopee.vn/product/37252407/3617180562"},{"id":137,"linkVideoRaw":"https://drive.google.com/file/d/1YCVIDmHhIQVUTHypvUrIfJhUip1FXSw4/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Fit Me Matte kiềm dầu","shopee":"https://shopee.vn/product/37252407/29152713227"},{"id":138,"linkVideoRaw":"https://drive.google.com/file/d/1InFTMdPRfnRTNCH7dWId92Tg5lbcXycX/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Fit Me Matte kiềm dầu","shopee":"https://shopee.vn/product/37252407/29152713227"},{"id":139,"linkVideoRaw":"https://drive.google.com/file/d/1mSAnSSikYrMxGk1DPpXFghwESxAcsnf8/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Fit Me Matte kiềm dầu","shopee":"https://shopee.vn/product/37252407/29152713227"},{"id":140,"linkVideoRaw":"https://drive.google.com/file/d/1bM9IWAF2RximTDnL3xjmWWX5mPLovd_M/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Fit Me Matte kiềm dầu","shopee":"https://shopee.vn/product/37252407/29152713227"},{"id":141,"linkVideoRaw":"https://drive.google.com/file/d/16v9Zum8Cel3pSRr7MibYQz7YOmHyR47-/view?usp=drivesdk","caption":"Xịt khóa nền Maybelline Fit Me Matte kiềm dầu","shopee":"https://shopee.vn/product/37252407/29152713227"},{"id":142,"linkVideoRaw":"https://drive.google.com/file/d/1nk_EZzs93mY_JUBQgUB7OND5w8t6gh31/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Tattoo 48H không trôi","shopee":"https://shopee.vn/product/37252407/22567268616"},{"id":143,"linkVideoRaw":"https://drive.google.com/file/d/1Q6ns2ZUoviwvulOkNnY2AEYuKc1mlX8Q/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Tattoo 48H không trôi","shopee":"https://shopee.vn/product/37252407/22567268616"},{"id":144,"linkVideoRaw":"https://drive.google.com/file/d/1llU-6vtVOOiwyI1P4tfAlKR9TI_eN86Y/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Tattoo 48H không trôi","shopee":"https://shopee.vn/product/37252407/22567268616"},{"id":145,"linkVideoRaw":"https://drive.google.com/file/d/1BpEvi4YRBuR-zz-JP2jwtQiUDtf-7QjM/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Tattoo 48H không trôi","shopee":"https://shopee.vn/product/37252407/22567268616"},{"id":146,"linkVideoRaw":"https://drive.google.com/file/d/1zi_PaisWnDXFPIBfousHj3SNBI4j3_Ta/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Tattoo 48H không trôi","shopee":"https://shopee.vn/product/37252407/22567268616"},{"id":147,"linkVideoRaw":"https://drive.google.com/file/d/1F4NtvYXMCqaT3tSl1PK05_dcoqyltUzl/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Hyper Sharp sắc mảnh","shopee":"https://shopee.vn/product/37252407/14765636748"},{"id":148,"linkVideoRaw":"https://drive.google.com/file/d/1qzwtcRUvllTj4bLa04lkvBVZYazYhBVZ/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Hyper Sharp sắc mảnh","shopee":"https://shopee.vn/product/37252407/14765636748"},{"id":149,"linkVideoRaw":"https://drive.google.com/file/d/1JfyQBY1u1uhvMEEieXmdq6HROfpSZ2Me/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Hyper Sharp sắc mảnh","shopee":"https://shopee.vn/product/37252407/14765636748"},{"id":150,"linkVideoRaw":"https://drive.google.com/file/d/1bZ1iJi7ZSPwN3EGLW6iAniN0vGUJhJth/view?usp=drivesdk","caption":"Bút kẻ mắt nước Maybelline Hyper Sharp sắc mảnh","shopee":"https://shopee.vn/product/37252407/14765636748"},{"id":151,"linkVideoRaw":"https://drive.google.com/file/d/1KCpC5pMlbCpcW08IOhMVW8ala1sMLLs6/view?usp=drivesdk","caption":"Mascara Maybelline Falsies Lash Lift uốn cong mi 8.6ml","shopee":"https://shopee.vn/product/37252407/3648216332"},{"id":152,"linkVideoRaw":"https://drive.google.com/file/d/1h1G5753QcZeG0VzYfOn-ncUgtZldnzpV/view?usp=drivesdk","caption":"Mascara Maybelline Falsies Lash Lift uốn cong mi 8.6ml","shopee":"https://shopee.vn/product/37252407/3648216332"},{"id":153,"linkVideoRaw":"https://drive.google.com/file/d/1rdRNLSJYJRkjfjJkmqbhtx11FckxUzuH/view?usp=drivesdk","caption":"Mascara Maybelline Falsies Lash Lift uốn cong mi 8.6ml","shopee":"https://shopee.vn/product/37252407/3648216332"},{"id":154,"linkVideoRaw":"https://drive.google.com/file/d/1KYQPrVVJhjYXOGu23mgjAFBR4vQce3dH/view?usp=drivesdk","caption":"Mascara Maybelline Falsies Lash Lift uốn cong mi 8.6ml","shopee":"https://shopee.vn/product/37252407/3648216332"},{"id":155,"linkVideoRaw":"https://drive.google.com/file/d/1VBQFBJipXR5pwlH30lMVKBWZJ1zE-MZ2/view?usp=drivesdk","caption":"Mascara Maybelline Falsies Lash Lift uốn cong mi 8.6ml","shopee":"https://shopee.vn/product/37252407/3648216332"},{"id":156,"linkVideoRaw":"https://drive.google.com/file/d/1qZqXpBTY1hmnThkOH30RbTXpluZiqx26/view?usp=drivesdk","caption":"Son thỏi lì Maybelline Color Sensational Ultimatte siêu nhẹ","shopee":"https://shopee.vn/product/37252407/8246478920"},{"id":157,"linkVideoRaw":"https://drive.google.com/file/d/12bZiE0hL6d0B5Xgs2pU__I_8iPRQLOUZ/view?usp=drivesdk","caption":"Son thỏi lì Maybelline Color Sensational Ultimatte siêu nhẹ","shopee":"https://shopee.vn/product/37252407/8246478920"},{"id":158,"linkVideoRaw":"https://drive.google.com/file/d/12QTwBsUeVW4IUFZrziirJ6gzBypQOYhi/view?usp=drivesdk","caption":"Son thỏi lì Maybelline Color Sensational Ultimatte siêu nhẹ","shopee":"https://shopee.vn/product/37252407/8246478920"},{"id":159,"linkVideoRaw":"https://drive.google.com/file/d/1lQ2FdIIAJPNfaCoXW1p4c8a2ng2z2vnB/view?usp=drivesdk","caption":"Son thỏi lì Maybelline Color Sensational Ultimatte siêu nhẹ","shopee":"https://shopee.vn/product/37252407/8246478920"},{"id":160,"linkVideoRaw":"https://drive.google.com/file/d/1KzyJYBShwWmfbQ-9l5jjLrjFWtETy-_U/view?usp=drivesdk","caption":"Son thỏi lì Maybelline Color Sensational Ultimatte siêu nhẹ","shopee":"https://shopee.vn/product/37252407/8246478920"},{"id":161,"linkVideoRaw":"https://drive.google.com/file/d/1-NbBEMXJED_rq_044QLHLCLrNj5Mk88-/view?usp=drivesdk","caption":"Bộ son bóng Lifter Gloss và son kem Teddy Maybelline","shopee":"https://shopee.vn/product/37252407/43060016689"},{"id":162,"linkVideoRaw":"https://drive.google.com/file/d/1mAa752OvlZwZTaecQCaRLp91AWSeaB57/view?usp=drivesdk","caption":"Bộ son bóng Lifter Gloss và son kem Teddy Maybelline","shopee":"https://shopee.vn/product/37252407/43060016689"},{"id":163,"linkVideoRaw":"https://drive.google.com/file/d/1DTdx2OHw2ZmU7u9NgCMNQcPLR6E4GHf-/view?usp=drivesdk","caption":"Bộ son bóng Lifter Gloss và son kem Teddy Maybelline","shopee":"https://shopee.vn/product/37252407/43060016689"},{"id":164,"linkVideoRaw":"https://drive.google.com/file/d/1zW4t5r3p0b9MJZvg4eaOj0MX7UmpvKE9/view?usp=drivesdk","caption":"Bộ son bóng Lifter Gloss và son kem Teddy Maybelline","shopee":"https://shopee.vn/product/37252407/43060016689"},{"id":165,"linkVideoRaw":"https://drive.google.com/file/d/1v1vtRWlcIaJJbu2qlN7SaSxVPman2LfA/view?usp=drivesdk","caption":"Bộ son bóng Lifter Gloss và son kem Teddy Maybelline","shopee":"https://shopee.vn/product/37252407/43060016689"},{"id":166,"linkVideoRaw":"https://drive.google.com/file/d/1nkN3-VCN5mIKTYfVjHAyEI9AOXw2lxnX/view?usp=drivesdk","caption":"Phấn phủ nền Maybelline SuperStay 30H che phủ cao","shopee":"https://shopee.vn/product/37252407/40613168311"},{"id":167,"linkVideoRaw":"https://drive.google.com/file/d/1PyXgtUUJ3dE9d6yqtiD85Uljfn9f-2xf/view?usp=drivesdk","caption":"Phấn phủ nền Maybelline SuperStay 30H che phủ cao","shopee":"https://shopee.vn/product/37252407/40613168311"},{"id":168,"linkVideoRaw":"https://drive.google.com/file/d/1rHGKWYA9FOSp6KYnLbyODTpi9VoUyAzJ/view?usp=drivesdk","caption":"Phấn phủ nền Maybelline SuperStay 30H che phủ cao","shopee":"https://shopee.vn/product/37252407/40613168311"},{"id":169,"linkVideoRaw":"https://drive.google.com/file/d/1HOx4A0W4wb3F-pnUT5EQjUW2SX9Qrw1B/view?usp=drivesdk","caption":"Phấn phủ nền Maybelline SuperStay 30H che phủ cao","shopee":"https://shopee.vn/product/37252407/40613168311"},{"id":170,"linkVideoRaw":"https://drive.google.com/file/d/1l7q8SM9cuqp873-q1MmwPgh1mVnmkgA5/view?usp=drivesdk","caption":"Phấn phủ nền Maybelline SuperStay 30H che phủ cao","shopee":"https://shopee.vn/product/37252407/40613168311"},{"id":171,"linkVideoRaw":"https://drive.google.com/file/d/1IA0-OxPN3y9eijr0d4JhGQP0_bJ5wWa8/view?usp=drivesdk","caption":"Bút che khuyết điểm Maybelline Instant Age Rewind 6ml","shopee":"https://shopee.vn/product/37252407/29973584492"},{"id":172,"linkVideoRaw":"https://drive.google.com/file/d/1g8OYA6aCTtz1-7yRwTgusUAoSp3QGyM0/view?usp=drivesdk","caption":"Bút che khuyết điểm Maybelline Instant Age Rewind 6ml","shopee":"https://shopee.vn/product/37252407/29973584492"},{"id":173,"linkVideoRaw":"https://drive.google.com/file/d/17k8Hcxn2HgsqpssDocqHF8VV4FqwSlQ8/view?usp=drivesdk","caption":"Bút che khuyết điểm Maybelline Instant Age Rewind 6ml","shopee":"https://shopee.vn/product/37252407/29973584492"},{"id":174,"linkVideoRaw":"https://drive.google.com/file/d/1XIdC2c8sDvcBjmwOAaMJVuau4dhs1SmJ/view?usp=drivesdk","caption":"Bút che khuyết điểm Maybelline Instant Age Rewind 6ml","shopee":"https://shopee.vn/product/37252407/29973584492"},{"id":175,"linkVideoRaw":"https://drive.google.com/file/d/1YLxs12HpH_ycRTKpWIyjqFzGmKLRJBCu/view?usp=drivesdk","caption":"Bút che khuyết điểm Maybelline Instant Age Rewind 6ml","shopee":"https://shopee.vn/product/37252407/29973584492"},{"id":176,"linkVideoRaw":"https://drive.google.com/file/d/1Bcdmfoiy-DO61MTKswOa9-dIBDRI3tyd/view?usp=drivesdk","caption":"Bảng phấn mắt Maybelline The City Mini Palette 6 màu","shopee":"https://shopee.vn/product/37252407/7838559932"},{"id":177,"linkVideoRaw":"https://drive.google.com/file/d/1zY8r2DOWMhfMd59VgUlvpEl_7f8Wn415/view?usp=drivesdk","caption":"Bảng phấn mắt Maybelline The City Mini Palette 6 màu","shopee":"https://shopee.vn/product/37252407/7838559932"},{"id":178,"linkVideoRaw":"https://drive.google.com/file/d/1W8UF17vsMKCvQYKA8WCEQCdONZGjiVLZ/view?usp=drivesdk","caption":"Bảng phấn mắt Maybelline The City Mini Palette 6 màu","shopee":"https://shopee.vn/product/37252407/7838559932"},{"id":179,"linkVideoRaw":"https://drive.google.com/file/d/1poVHUdbDeYljxCNpV59FXVRsypQ0bKT5/view?usp=drivesdk","caption":"Bảng phấn mắt Maybelline The City Mini Palette 6 màu","shopee":"https://shopee.vn/product/37252407/7838559932"},{"id":180,"linkVideoRaw":"https://drive.google.com/file/d/1BwLFNctbj75AwvvBdpbCGtd7NhvW9NI9/view?usp=drivesdk","caption":"Bảng phấn mắt Maybelline The City Mini Palette 6 màu","shopee":"https://shopee.vn/product/37252407/7838559932"},{"id":181,"linkVideoRaw":"https://drive.google.com/file/d/1XeqJCQCKulaAtggJ-ky6k6xLiv_bymfo/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Tone Up No Sebum kiềm dầu","shopee":"https://shopee.vn/product/155343961/2731358357"},{"id":182,"linkVideoRaw":"https://drive.google.com/file/d/1pUWQ1yjTtFHg8KhNuv2uZlb_stK3tmYr/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Tone Up No Sebum kiềm dầu","shopee":"https://shopee.vn/product/155343961/2731358357"},{"id":183,"linkVideoRaw":"https://drive.google.com/file/d/13kKxtGCqcuccbGtk98t8EwIzkV5npXxq/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Tone Up No Sebum kiềm dầu","shopee":"https://shopee.vn/product/155343961/2731358357"},{"id":184,"linkVideoRaw":"https://drive.google.com/file/d/1hEeT9BEW_aqrPsgl1vWCUP61mOV0ZC4T/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Tone Up No Sebum kiềm dầu","shopee":"https://shopee.vn/product/155343961/2731358357"},{"id":185,"linkVideoRaw":"https://drive.google.com/file/d/1f4UqFjpbNDeM8b6p_TDG-RU_PRHduqdA/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Tone Up No Sebum kiềm dầu","shopee":"https://shopee.vn/product/155343961/2731358357"},{"id":186,"linkVideoRaw":"https://drive.google.com/file/d/1aPGFLBdP_0usi5x6fCBjNTpO4Ubsl5WL/view?usp=drivesdk","caption":"Phấn phủ bột Innisfree No Sebum Mineral kiềm dầu 5g","shopee":"https://shopee.vn/product/155343961/2341941748"},{"id":187,"linkVideoRaw":"https://drive.google.com/file/d/17ebjOxrudclMk09zYTKnMKShN_NoZaK2/view?usp=drivesdk","caption":"Phấn phủ bột Innisfree No Sebum Mineral kiềm dầu 5g","shopee":"https://shopee.vn/product/155343961/2341941748"},{"id":188,"linkVideoRaw":"https://drive.google.com/file/d/15ErEVkhFLVqrt469CEVWFnP0boccBPS7/view?usp=drivesdk","caption":"Phấn phủ bột Innisfree No Sebum Mineral kiềm dầu 5g","shopee":"https://shopee.vn/product/155343961/2341941748"},{"id":189,"linkVideoRaw":"https://drive.google.com/file/d/1P3-yX6ip2aAErIAmk403EugtKd-4HUkU/view?usp=drivesdk","caption":"Phấn phủ bột Innisfree No Sebum Mineral kiềm dầu 5g","shopee":"https://shopee.vn/product/155343961/2341941748"},{"id":190,"linkVideoRaw":"https://drive.google.com/file/d/1gJnIesNzJLA2gOg5aURxOEXAdVv5sbOo/view?usp=drivesdk","caption":"Phấn phủ bột Innisfree No Sebum Mineral kiềm dầu 5g","shopee":"https://shopee.vn/product/155343961/2341941748"},{"id":191,"linkVideoRaw":"https://drive.google.com/file/d/1XgNCedSI2Xw09DdqiqnL_j6ktumxrf4F/view?usp=drivesdk","caption":"Mặt nạ giấy dưỡng da Innisfree My Real Squeeze 22ml","shopee":"https://shopee.vn/product/155343961/2355167886"},{"id":192,"linkVideoRaw":"https://drive.google.com/file/d/1DEg96SCfgmNUTBsPXUI7KQ6tyIM0jaCm/view?usp=drivesdk","caption":"Mặt nạ giấy dưỡng da Innisfree My Real Squeeze 22ml","shopee":"https://shopee.vn/product/155343961/2355167886"},{"id":193,"linkVideoRaw":"https://drive.google.com/file/d/1LHjbsB8paXY_fPSOq5prkvNAQgZYAQ2V/view?usp=drivesdk","caption":"Mặt nạ giấy dưỡng da Innisfree My Real Squeeze 22ml","shopee":"https://shopee.vn/product/155343961/2355167886"},{"id":194,"linkVideoRaw":"https://drive.google.com/file/d/1pIGb5vREUFmtWyUfpgLgInoGZHROiSSJ/view?usp=drivesdk","caption":"Mặt nạ giấy dưỡng da Innisfree My Real Squeeze 22ml","shopee":"https://shopee.vn/product/155343961/2355167886"},{"id":195,"linkVideoRaw":"https://drive.google.com/file/d/1nX_p_nYsd8o5utlKJ8VAiBX76ANo9Aip/view?usp=drivesdk","caption":"Mặt nạ giấy dưỡng da Innisfree My Real Squeeze 22ml","shopee":"https://shopee.vn/product/155343961/2355167886"},{"id":196,"linkVideoRaw":"https://drive.google.com/file/d/1gAzvwRzOC-gV6FX4voRpWBwyYMEbJXuC/view?usp=drivesdk","caption":"Sữa rửa mặt trà xanh Innisfree Amino sạch sâu 150g","shopee":"https://shopee.vn/product/155343961/2357216222"},{"id":197,"linkVideoRaw":"https://drive.google.com/file/d/1tB-_KtiROORNsIK7mrC-lt3JLt2fbzo6/view?usp=drivesdk","caption":"Sữa rửa mặt trà xanh Innisfree Amino sạch sâu 150g","shopee":"https://shopee.vn/product/155343961/2357216222"},{"id":198,"linkVideoRaw":"https://drive.google.com/file/d/1YvYCcSCFAHLhjPS3KVC7GvWLTVCNLTE0/view?usp=drivesdk","caption":"Sữa rửa mặt trà xanh Innisfree Amino sạch sâu 150g","shopee":"https://shopee.vn/product/155343961/2357216222"},{"id":199,"linkVideoRaw":"https://drive.google.com/file/d/1E1_7u3NJeufMpBbAx4u051vmU7nrnX3Y/view?usp=drivesdk","caption":"Sữa rửa mặt trà xanh Innisfree Amino sạch sâu 150g","shopee":"https://shopee.vn/product/155343961/2357216222"},{"id":200,"linkVideoRaw":"https://drive.google.com/file/d/1XaSFQzwoHssA3f3fofWyqeHVKaE2hMPf/view?usp=drivesdk","caption":"Sữa rửa mặt trà xanh Innisfree Amino sạch sâu 150g","shopee":"https://shopee.vn/product/155343961/2357216222"},{"id":201,"linkVideoRaw":"https://drive.google.com/file/d/1J7PpBe3ruFOaRm8L5ix0y2-LM9OM7Loy/view?usp=drivesdk","caption":"Serum trà xanh Innisfree Green Tea Seed Hyaluronic 80ml","shopee":"https://shopee.vn/product/155343961/15380757366"},{"id":202,"linkVideoRaw":"https://drive.google.com/file/d/1hWK0yNolgwu1D4EjRPuh-oj1j37JW0Mu/view?usp=drivesdk","caption":"Serum trà xanh Innisfree Green Tea Seed Hyaluronic 80ml","shopee":"https://shopee.vn/product/155343961/15380757366"},{"id":203,"linkVideoRaw":"https://drive.google.com/file/d/1LS6whEkHaca2wWr3rFbvIdhgwFSb8o-f/view?usp=drivesdk","caption":"Serum trà xanh Innisfree Green Tea Seed Hyaluronic 80ml","shopee":"https://shopee.vn/product/155343961/15380757366"},{"id":204,"linkVideoRaw":"https://drive.google.com/file/d/1uaVMEq5shMPlYB2OJLk5BXTbXByN5rQC/view?usp=drivesdk","caption":"Serum trà xanh Innisfree Green Tea Seed Hyaluronic 80ml","shopee":"https://shopee.vn/product/155343961/15380757366"},{"id":205,"linkVideoRaw":"https://drive.google.com/file/d/1lYLZkA-xmG55UI95c85mhK9RFHjaQhOE/view?usp=drivesdk","caption":"Serum trà xanh Innisfree Green Tea Seed Hyaluronic 80ml","shopee":"https://shopee.vn/product/155343961/15380757366"},{"id":206,"linkVideoRaw":"https://drive.google.com/file/d/1MGgr4VHAIAfgc-V_kIBqK5uu31JMx6WM/view?usp=drivesdk","caption":"Kem dưỡng da tay Innisfree Jeju Life Perfumed 30ml","shopee":"https://shopee.vn/product/155343961/3638658164"},{"id":207,"linkVideoRaw":"https://drive.google.com/file/d/1w2m4z9w1D7LsR4nsC7lCotF8QwClnWLG/view?usp=drivesdk","caption":"Kem dưỡng da tay Innisfree Jeju Life Perfumed 30ml","shopee":"https://shopee.vn/product/155343961/3638658164"},{"id":208,"linkVideoRaw":"https://drive.google.com/file/d/1nNvI1mTIymMr5Bqnh5EZdhu2a9R9GyBH/view?usp=drivesdk","caption":"Kem dưỡng da tay Innisfree Jeju Life Perfumed 30ml","shopee":"https://shopee.vn/product/155343961/3638658164"},{"id":209,"linkVideoRaw":"https://drive.google.com/file/d/1kYvBhuyUPmizxpfeb7B1L7tFRGOcPaFn/view?usp=drivesdk","caption":"Kem dưỡng da tay Innisfree Jeju Life Perfumed 30ml","shopee":"https://shopee.vn/product/155343961/3638658164"},{"id":210,"linkVideoRaw":"https://drive.google.com/file/d/17di6FRW0fKYy5c1T2vOn59jxE_pkeqS1/view?usp=drivesdk","caption":"Kem dưỡng da tay Innisfree Jeju Life Perfumed 30ml","shopee":"https://shopee.vn/product/155343961/3638658164"},{"id":211,"linkVideoRaw":"https://drive.google.com/file/d/1sufX3ecn62u7lqE9kJGk98tP9PGdQL9w/view?usp=drivesdk","caption":"Kem dưỡng ẩm trà xanh Innisfree Probiotics Hyaluronic 50ml","shopee":"https://shopee.vn/product/155343961/2357216159"},{"id":212,"linkVideoRaw":"https://drive.google.com/file/d/1mkqB9g-ec4vmJmODTsLNPzMALTnImixo/view?usp=drivesdk","caption":"Kem dưỡng ẩm trà xanh Innisfree Probiotics Hyaluronic 50ml","shopee":"https://shopee.vn/product/155343961/2357216159"},{"id":213,"linkVideoRaw":"https://drive.google.com/file/d/1wsyO6JcOZEYTkQYCjJUno3uabr42-SDv/view?usp=drivesdk","caption":"Kem dưỡng ẩm trà xanh Innisfree Probiotics Hyaluronic 50ml","shopee":"https://shopee.vn/product/155343961/2357216159"},{"id":214,"linkVideoRaw":"https://drive.google.com/file/d/1Qa382DlZX2kL2YWZqU4xTf0aa1r_3JCf/view?usp=drivesdk","caption":"Kem dưỡng ẩm trà xanh Innisfree Probiotics Hyaluronic 50ml","shopee":"https://shopee.vn/product/155343961/2357216159"},{"id":215,"linkVideoRaw":"https://drive.google.com/file/d/1XPFRb6B1ujiPZ0IUqENSHBD5RQUhlA15/view?usp=drivesdk","caption":"Kem dưỡng ẩm trà xanh Innisfree Probiotics Hyaluronic 50ml","shopee":"https://shopee.vn/product/155343961/2357216159"},{"id":216,"linkVideoRaw":"https://drive.google.com/file/d/1fFfi9VuNZKGXegw3tV82QvXY80Mkif6V/view?usp=drivesdk","caption":"Serum Innisfree Retinol Cica Repair kiểm soát dầu mụn","shopee":"https://shopee.vn/product/155343961/12678530446"},{"id":217,"linkVideoRaw":"https://drive.google.com/file/d/1AZTCL_6mXpNNjituxQOq-xGRUBcabx2m/view?usp=drivesdk","caption":"Serum Innisfree Retinol Cica Repair kiểm soát dầu mụn","shopee":"https://shopee.vn/product/155343961/12678530446"},{"id":218,"linkVideoRaw":"https://drive.google.com/file/d/13SJ9tLYHabgEVXkb5KsovSRKjmJhQoxC/view?usp=drivesdk","caption":"Serum Innisfree Retinol Cica Repair kiểm soát dầu mụn","shopee":"https://shopee.vn/product/155343961/12678530446"},{"id":219,"linkVideoRaw":"https://drive.google.com/file/d/1amoYW-F0D-oL5wDEm0-e6hCTNGESyOp7/view?usp=drivesdk","caption":"Serum Innisfree Retinol Cica Repair kiểm soát dầu mụn","shopee":"https://shopee.vn/product/155343961/12678530446"},{"id":220,"linkVideoRaw":"https://drive.google.com/file/d/1SBSUP8UoT11bHkqVoR57xfxEXRV56yFM/view?usp=drivesdk","caption":"Serum Innisfree Retinol Cica Repair kiểm soát dầu mụn","shopee":"https://shopee.vn/product/155343961/12678530446"},{"id":221,"linkVideoRaw":"https://drive.google.com/file/d/1z1RabrD2SMm3LA_KaZjT-Wo8UnR3EYwQ/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Hyaluron Moist dưỡng ẩm 50ml","shopee":"https://shopee.vn/product/155343961/23249613328"},{"id":222,"linkVideoRaw":"https://drive.google.com/file/d/1txXDFSJ9ylA_9E4K7kk3GAq5YGgKxn-F/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Hyaluron Moist dưỡng ẩm 50ml","shopee":"https://shopee.vn/product/155343961/23249613328"},{"id":223,"linkVideoRaw":"https://drive.google.com/file/d/1gtA7NKm3AyVASppqmT50JJSfeUQWBAJs/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Hyaluron Moist dưỡng ẩm 50ml","shopee":"https://shopee.vn/product/155343961/23249613328"},{"id":224,"linkVideoRaw":"https://drive.google.com/file/d/1w51IXNUXTMHe0spqC_zVgcsPWdnmrOTd/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Hyaluron Moist dưỡng ẩm 50ml","shopee":"https://shopee.vn/product/155343961/23249613328"},{"id":225,"linkVideoRaw":"https://drive.google.com/file/d/1qVo48fc-fYD1ZGv4uR0Ngroe_jUvOqU_/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Hyaluron Moist dưỡng ẩm 50ml","shopee":"https://shopee.vn/product/155343961/23249613328"},{"id":226,"linkVideoRaw":"https://drive.google.com/file/d/1NJfIonyIibeNSKrZWsDZmuvf2_e8NZ2b/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Intensive Long Lasting lâu trôi 60ml","shopee":"https://shopee.vn/product/155343961/2712731941"},{"id":227,"linkVideoRaw":"https://drive.google.com/file/d/1pmLhiH0wqy3nAG1Z0uWQ4JoEMWWHyi2Y/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Intensive Long Lasting lâu trôi 60ml","shopee":"https://shopee.vn/product/155343961/2712731941"},{"id":228,"linkVideoRaw":"https://drive.google.com/file/d/1IMI5838WdGDMwGKVKdD03aKW58N5_nDD/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Intensive Long Lasting lâu trôi 60ml","shopee":"https://shopee.vn/product/155343961/2712731941"},{"id":229,"linkVideoRaw":"https://drive.google.com/file/d/1RMDjnh78Az3OqpTjSNYztMCj4gN8FCFV/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Intensive Long Lasting lâu trôi 60ml","shopee":"https://shopee.vn/product/155343961/2712731941"},{"id":230,"linkVideoRaw":"https://drive.google.com/file/d/1csN3uWBTBYnPctkNiHus-_KbpRrXm-je/view?usp=drivesdk","caption":"Kem chống nắng Innisfree Intensive Long Lasting lâu trôi 60ml","shopee":"https://shopee.vn/product/155343961/2712731941"},{"id":231,"linkVideoRaw":"https://drive.google.com/file/d/1uxk-pmhqMmnyz0Cbt5YU6p9uSGfYz_Nc/view?usp=drivesdk","caption":"Kem chống nắng Innisfree UV Active Poreless làm mịn da","shopee":"https://shopee.vn/product/155343961/18896080250"},{"id":232,"linkVideoRaw":"https://drive.google.com/file/d/1aReAu2352nTorO8W33vLy7xKwpr7aYCw/view?usp=drivesdk","caption":"Kem chống nắng Innisfree UV Active Poreless làm mịn da","shopee":"https://shopee.vn/product/155343961/18896080250"},{"id":233,"linkVideoRaw":"https://drive.google.com/file/d/1q1XKsLc5PfnwdYNBOB3fj4H9ti6EvU_a/view?usp=drivesdk","caption":"Kem chống nắng Innisfree UV Active Poreless làm mịn da","shopee":"https://shopee.vn/product/155343961/18896080250"},{"id":234,"linkVideoRaw":"https://drive.google.com/file/d/1trvcCsYgplT4NYNj-pT7Er1LngZo4TBe/view?usp=drivesdk","caption":"Kem chống nắng Innisfree UV Active Poreless làm mịn da","shopee":"https://shopee.vn/product/155343961/18896080250"},{"id":235,"linkVideoRaw":"https://drive.google.com/file/d/1ma3O_kjvh0iXMuge_IKinSMcHr415Y7z/view?usp=drivesdk","caption":"Kem chống nắng Innisfree UV Active Poreless làm mịn da","shopee":"https://shopee.vn/product/155343961/18896080250"},{"id":236,"linkVideoRaw":"https://drive.google.com/file/d/1ZhCd9B6J35oYpHEg4uFHUy7fcRfGtPUN/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Green Tea Amino dưỡng ẩm 320ml","shopee":"https://shopee.vn/product/155343961/2325712471"},{"id":237,"linkVideoRaw":"https://drive.google.com/file/d/1lHiIKAEB5Nv4uAWUD7M9V9zAFq-2FrOH/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Green Tea Amino dưỡng ẩm 320ml","shopee":"https://shopee.vn/product/155343961/2325712471"},{"id":238,"linkVideoRaw":"https://drive.google.com/file/d/1oSLMXMLayvaOW14ENbp2kDIjFPtN5iqS/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Green Tea Amino dưỡng ẩm 320ml","shopee":"https://shopee.vn/product/155343961/2325712471"},{"id":239,"linkVideoRaw":"https://drive.google.com/file/d/1Cq5eyDhJ2kaz9nW-_fuJDfo17AmQFkcY/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Green Tea Amino dưỡng ẩm 320ml","shopee":"https://shopee.vn/product/155343961/2325712471"},{"id":240,"linkVideoRaw":"https://drive.google.com/file/d/1orTywlITAghJsatoJPm6soHW8uMe_GBj/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Green Tea Amino dưỡng ẩm 320ml","shopee":"https://shopee.vn/product/155343961/2325712471"},{"id":241,"linkVideoRaw":"https://drive.google.com/file/d/1neVNuq09Ib7oH7UUPKDKvwAQmSeJVzzf/view?usp=drivesdk","caption":"Kem đêm Innisfree Black Tea chống lão hóa 50ml","shopee":"https://shopee.vn/product/155343961/6371138056"},{"id":242,"linkVideoRaw":"https://drive.google.com/file/d/135HiNx8sviu8uHv29wGMBr2bOldXG12H/view?usp=drivesdk","caption":"Kem đêm Innisfree Black Tea chống lão hóa 50ml","shopee":"https://shopee.vn/product/155343961/6371138056"},{"id":243,"linkVideoRaw":"https://drive.google.com/file/d/1cfGdsFKqfvBMx5pkUCcMbFob2O3Dr5ij/view?usp=drivesdk","caption":"Kem đêm Innisfree Black Tea chống lão hóa 50ml","shopee":"https://shopee.vn/product/155343961/6371138056"},{"id":244,"linkVideoRaw":"https://drive.google.com/file/d/1Ru6dH6Ef88_VtYHuL-IwuP0XYkmKUxYf/view?usp=drivesdk","caption":"Kem đêm Innisfree Black Tea chống lão hóa 50ml","shopee":"https://shopee.vn/product/155343961/6371138056"},{"id":245,"linkVideoRaw":"https://drive.google.com/file/d/1rXA2AzKoM5xwnuXNepR6xaqbeHgjiMom/view?usp=drivesdk","caption":"Kem đêm Innisfree Black Tea chống lão hóa 50ml","shopee":"https://shopee.vn/product/155343961/6371138056"},{"id":246,"linkVideoRaw":"https://drive.google.com/file/d/1ULTBLhzlw4_bwLdMn7SnP4D906-59K3e/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390459"},{"id":247,"linkVideoRaw":"https://drive.google.com/file/d/1CohhP6q65euJpRrKh2lSQbOol6F9zqqC/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390459"},{"id":248,"linkVideoRaw":"https://drive.google.com/file/d/11dSx50WpAdAnoT56oG9sPL9VwZo5X_8N/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390459"},{"id":249,"linkVideoRaw":"https://drive.google.com/file/d/11gr7Y5rqqF-PZE9HOjpNUrA9Gzlz6Hj8/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390459"},{"id":250,"linkVideoRaw":"https://drive.google.com/file/d/1T3AhhLq47CCb-756u-y26VmuP7Dx2lsV/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390459"},{"id":251,"linkVideoRaw":"https://drive.google.com/file/d/1zAu6tyc6cKJiPxRfDZTIdXQlX6J3RrCS/view?usp=drivesdk","caption":"Tinh chất Innisfree Black Tea chống lão hóa phục hồi","shopee":"https://shopee.vn/product/155343961/5771127717"},{"id":252,"linkVideoRaw":"https://drive.google.com/file/d/13lbwIHqvxmvEMK7t6DBaSdosFr52stzv/view?usp=drivesdk","caption":"Tinh chất Innisfree Black Tea chống lão hóa phục hồi","shopee":"https://shopee.vn/product/155343961/5771127717"},{"id":253,"linkVideoRaw":"https://drive.google.com/file/d/1782K8wXXzUxQX2bjUAg6t5pTbVa-VdIO/view?usp=drivesdk","caption":"Tinh chất Innisfree Black Tea chống lão hóa phục hồi","shopee":"https://shopee.vn/product/155343961/5771127717"},{"id":254,"linkVideoRaw":"https://drive.google.com/file/d/1t9TrwNGKw70ipusEzpYwxIF2H_API0F7/view?usp=drivesdk","caption":"Tinh chất Innisfree Black Tea chống lão hóa phục hồi","shopee":"https://shopee.vn/product/155343961/5771127717"},{"id":255,"linkVideoRaw":"https://drive.google.com/file/d/1HYpcMKnf7Az9xHImB3FhMMB6jkc7UUHt/view?usp=drivesdk","caption":"Tinh chất Innisfree Black Tea chống lão hóa phục hồi","shopee":"https://shopee.vn/product/155343961/5771127717"},{"id":256,"linkVideoRaw":"https://drive.google.com/file/d/1RXlJ6Qg1nn2N6XX6nv6F72trMUr9eXxm/view?usp=drivesdk","caption":"Sữa dưỡng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390062"},{"id":257,"linkVideoRaw":"https://drive.google.com/file/d/1olNp6JpXdZyxkblb-nljgd3tDFPvIL9s/view?usp=drivesdk","caption":"Sữa dưỡng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390062"},{"id":258,"linkVideoRaw":"https://drive.google.com/file/d/1n2Tbq2n8e5UqRviZBS3WwbC8NTu73nZ9/view?usp=drivesdk","caption":"Sữa dưỡng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390062"},{"id":259,"linkVideoRaw":"https://drive.google.com/file/d/1UwCU1xDeuhJ-eNC7QwVwgJhhBBR7kJK2/view?usp=drivesdk","caption":"Sữa dưỡng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390062"},{"id":260,"linkVideoRaw":"https://drive.google.com/file/d/1myZiiv5ufvswNBJKXqlnpNjL1qTzR8Te/view?usp=drivesdk","caption":"Sữa dưỡng Innisfree Black Tea chống lão hóa 170ml","shopee":"https://shopee.vn/product/155343961/12866390062"},{"id":261,"linkVideoRaw":"https://drive.google.com/file/d/1mdZ5ia_FoKNzf3NEq9tUhByjhP7DkmKy/view?usp=drivesdk","caption":"Kem dưỡng ẩm sáng da Innisfree Cherry Blossom SPF50 50ml","shopee":"https://shopee.vn/product/155343961/5438685498"},{"id":262,"linkVideoRaw":"https://drive.google.com/file/d/1XR64OjtwjcJkpFRSIWi9FEUsYkgKrdPx/view?usp=drivesdk","caption":"Kem dưỡng ẩm sáng da Innisfree Cherry Blossom SPF50 50ml","shopee":"https://shopee.vn/product/155343961/5438685498"},{"id":263,"linkVideoRaw":"https://drive.google.com/file/d/1u2R8GGG9puWkpALKbEqEqmzwzDRX6NWD/view?usp=drivesdk","caption":"Kem dưỡng ẩm sáng da Innisfree Cherry Blossom SPF50 50ml","shopee":"https://shopee.vn/product/155343961/5438685498"},{"id":264,"linkVideoRaw":"https://drive.google.com/file/d/1AVDpJ1uapu-Xzuk3bI75Xj3Gw-FGhMxD/view?usp=drivesdk","caption":"Kem dưỡng ẩm sáng da Innisfree Cherry Blossom SPF50 50ml","shopee":"https://shopee.vn/product/155343961/5438685498"},{"id":265,"linkVideoRaw":"https://drive.google.com/file/d/1XfvipO9f391MywpYhuqQ1V1O95PYcRIm/view?usp=drivesdk","caption":"Kem dưỡng ẩm sáng da Innisfree Cherry Blossom SPF50 50ml","shopee":"https://shopee.vn/product/155343961/5438685498"},{"id":266,"linkVideoRaw":"https://drive.google.com/file/d/1cyv6umH0N4qoSNvwms-Kxd0Ka1jSvOm0/view?usp=drivesdk","caption":"Gel dưỡng ẩm hoa anh đào Innisfree Jelly Cream 50ml","shopee":"https://shopee.vn/product/155343961/2680315700"},{"id":267,"linkVideoRaw":"https://drive.google.com/file/d/1NuUrbhhKZyDZ-GHO4ZFxunLaq-VchjkE/view?usp=drivesdk","caption":"Gel dưỡng ẩm hoa anh đào Innisfree Jelly Cream 50ml","shopee":"https://shopee.vn/product/155343961/2680315700"},{"id":268,"linkVideoRaw":"https://drive.google.com/file/d/1n28lIYhMyqCAlETVyQx5clR8kzt-NjOV/view?usp=drivesdk","caption":"Gel dưỡng ẩm hoa anh đào Innisfree Jelly Cream 50ml","shopee":"https://shopee.vn/product/155343961/2680315700"},{"id":269,"linkVideoRaw":"https://drive.google.com/file/d/1H2gn8BeRFHv3IpryXYO--Lo9RJ2Ccqyw/view?usp=drivesdk","caption":"Gel dưỡng ẩm hoa anh đào Innisfree Jelly Cream 50ml","shopee":"https://shopee.vn/product/155343961/2680315700"},{"id":270,"linkVideoRaw":"https://drive.google.com/file/d/1mxbNaJ5ZpJS0WRVQMTfAjGEF66FYBsev/view?usp=drivesdk","caption":"Gel dưỡng ẩm hoa anh đào Innisfree Jelly Cream 50ml","shopee":"https://shopee.vn/product/155343961/2680315700"},{"id":271,"linkVideoRaw":"https://drive.google.com/file/d/1pd7nOFD4ax4Ne2v62AMsWftO6Jekxpxn/view?usp=drivesdk","caption":"Kem nâng tông hoa anh đào Innisfree Tone Up 50ml","shopee":"https://shopee.vn/product/155343961/2680301556"},{"id":272,"linkVideoRaw":"https://drive.google.com/file/d/1UstcPKOGm7MhePO4-nfzyuBajYWRoCwK/view?usp=drivesdk","caption":"Kem nâng tông hoa anh đào Innisfree Tone Up 50ml","shopee":"https://shopee.vn/product/155343961/2680301556"},{"id":273,"linkVideoRaw":"https://drive.google.com/file/d/1NuaSB7INUgYxppf4ZwNJVis2WseB-4Hf/view?usp=drivesdk","caption":"Kem nâng tông hoa anh đào Innisfree Tone Up 50ml","shopee":"https://shopee.vn/product/155343961/2680301556"},{"id":274,"linkVideoRaw":"https://drive.google.com/file/d/11ryMmICQjhyeiA-Apa6PmUOPP15ZQ-25/view?usp=drivesdk","caption":"Kem nâng tông hoa anh đào Innisfree Tone Up 50ml","shopee":"https://shopee.vn/product/155343961/2680301556"},{"id":275,"linkVideoRaw":"https://drive.google.com/file/d/1tpzD4flLzykBw51OjNr-yKoYM_A404Bb/view?usp=drivesdk","caption":"Mặt nạ đất sét Innisfree Super Volcanic se lỗ chân lông","shopee":"https://shopee.vn/product/155343961/2355017283"},{"id":276,"linkVideoRaw":"https://drive.google.com/file/d/1yihuEWaKEqcQHwQMFe_3aB2SJSUZcdbQ/view?usp=drivesdk","caption":"Mặt nạ đất sét Innisfree Super Volcanic se lỗ chân lông","shopee":"https://shopee.vn/product/155343961/2355017283"},{"id":277,"linkVideoRaw":"https://drive.google.com/file/d/11eVMCAuRLZYf59uc_511VKC9kWE07nL3/view?usp=drivesdk","caption":"Mặt nạ đất sét Innisfree Super Volcanic se lỗ chân lông","shopee":"https://shopee.vn/product/155343961/2355017283"},{"id":278,"linkVideoRaw":"https://drive.google.com/file/d/1Srhbb2Q8Wp_z2nV0O7ZeMYXSfTTdI58i/view?usp=drivesdk","caption":"Mặt nạ đất sét Innisfree Super Volcanic se lỗ chân lông","shopee":"https://shopee.vn/product/155343961/2355017283"},{"id":279,"linkVideoRaw":"https://drive.google.com/file/d/14ZRhY5ZjpCj23oEpj5wGlupYWA7mf49B/view?usp=drivesdk","caption":"Mặt nạ đất sét Innisfree Super Volcanic se lỗ chân lông","shopee":"https://shopee.vn/product/155343961/2355017283"},{"id":280,"linkVideoRaw":"https://drive.google.com/file/d/1SZSz46EfrrKUmM8ZWMuhDJ2kkOvAdMP5/view?usp=drivesdk","caption":"Sữa rửa mặt Innisfree Blueberry Rebalancing 5.5 cân bằng pH","shopee":"https://shopee.vn/product/155343961/7953900308"},{"id":281,"linkVideoRaw":"https://drive.google.com/file/d/1F6OeSXqKT2N7VzNplSGf_DBtrj8tFEqd/view?usp=drivesdk","caption":"Sữa rửa mặt Innisfree Blueberry Rebalancing 5.5 cân bằng pH","shopee":"https://shopee.vn/product/155343961/7953900308"},{"id":282,"linkVideoRaw":"https://drive.google.com/file/d/1js8G5yUkq9DOTo8CJCTb25j8u5fDdTpN/view?usp=drivesdk","caption":"Sữa rửa mặt Innisfree Blueberry Rebalancing 5.5 cân bằng pH","shopee":"https://shopee.vn/product/155343961/7953900308"},{"id":283,"linkVideoRaw":"https://drive.google.com/file/d/1x767-lTHKfQ2vsKOTB37XeTpJ4lhFA4q/view?usp=drivesdk","caption":"Sữa rửa mặt Innisfree Blueberry Rebalancing 5.5 cân bằng pH","shopee":"https://shopee.vn/product/155343961/7953900308"},{"id":284,"linkVideoRaw":"https://drive.google.com/file/d/1SBteoYIBE6LM35lJu1ALwNhxdmw1bclD/view?usp=drivesdk","caption":"Sữa rửa mặt Innisfree Blueberry Rebalancing 5.5 cân bằng pH","shopee":"https://shopee.vn/product/155343961/7953900308"},{"id":285,"linkVideoRaw":"https://drive.google.com/file/d/1OJARZxj49hT0LKy7A9YBvlyPsmr4LJhQ/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Blueberry Rebalancing dưỡng ẩm 200ml","shopee":"https://shopee.vn/product/155343961/5153903655"},{"id":286,"linkVideoRaw":"https://drive.google.com/file/d/13PVucH_T9423GQRM6C7DO56x-3x-W3LP/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Blueberry Rebalancing dưỡng ẩm 200ml","shopee":"https://shopee.vn/product/155343961/5153903655"},{"id":287,"linkVideoRaw":"https://drive.google.com/file/d/1CbYkhN8qxEeQ6GmR_A9PyomVBT6bL3hu/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Blueberry Rebalancing dưỡng ẩm 200ml","shopee":"https://shopee.vn/product/155343961/5153903655"},{"id":288,"linkVideoRaw":"https://drive.google.com/file/d/1ZehjCi55qacnqAop14V-H9BgtsSE4-79/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Blueberry Rebalancing dưỡng ẩm 200ml","shopee":"https://shopee.vn/product/155343961/5153903655"},{"id":289,"linkVideoRaw":"https://drive.google.com/file/d/1Voh_ITc5LB3E218r-Cyau_5BXH2iPgeE/view?usp=drivesdk","caption":"Nước tẩy trang Innisfree Blueberry Rebalancing dưỡng ẩm 200ml","shopee":"https://shopee.vn/product/155343961/5153903655"},{"id":290,"linkVideoRaw":"https://drive.google.com/file/d/1c6PRnhSvCCRUlFaiwveyVxG_o_qZDbkV/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Blueberry Rebalancing giữ ẩm da","shopee":"https://shopee.vn/product/155343961/6453905574"},{"id":291,"linkVideoRaw":"https://drive.google.com/file/d/1gTeqbfqmx934t38rF1exy-g4ZsQ1AM3C/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Blueberry Rebalancing giữ ẩm da","shopee":"https://shopee.vn/product/155343961/6453905574"},{"id":292,"linkVideoRaw":"https://drive.google.com/file/d/1p-bwCNpquHjupYjziQ-mrt2otKzUZhdl/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Blueberry Rebalancing giữ ẩm da","shopee":"https://shopee.vn/product/155343961/6453905574"},{"id":293,"linkVideoRaw":"https://drive.google.com/file/d/1eY2JK4aZWWmcucrgZKInC3eUbnalpiMK/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Blueberry Rebalancing giữ ẩm da","shopee":"https://shopee.vn/product/155343961/6453905574"},{"id":294,"linkVideoRaw":"https://drive.google.com/file/d/1swsfxemmZU8yAKD9BcNmOtcsuN9JjbFE/view?usp=drivesdk","caption":"Nước cân bằng Innisfree Blueberry Rebalancing giữ ẩm da","shopee":"https://shopee.vn/product/155343961/6453905574"},{"id":295,"linkVideoRaw":"https://drive.google.com/file/d/1KyWsmRmT17TvQXyXpRA-B_wmuFa7P6J2/view?usp=drivesdk","caption":"Gel tẩy tế bào chết lúa mạch Innisfree 120ml","shopee":"https://shopee.vn/product/155343961/2712731961"},{"id":296,"linkVideoRaw":"https://drive.google.com/file/d/17QHphMyK7Xt7EftRnk7TTCKDWTI_UxYh/view?usp=drivesdk","caption":"Gel tẩy tế bào chết lúa mạch Innisfree 120ml","shopee":"https://shopee.vn/product/155343961/2712731961"},{"id":297,"linkVideoRaw":"https://drive.google.com/file/d/1QsaXYmuVhmJRtgGhyGzuMmgqsc8HZUc9/view?usp=drivesdk","caption":"Gel tẩy tế bào chết lúa mạch Innisfree 120ml","shopee":"https://shopee.vn/product/155343961/2712731961"},{"id":298,"linkVideoRaw":"https://drive.google.com/file/d/1sOh9fIGGhmSNP3kMUkSMO22iymBuNnHJ/view?usp=drivesdk","caption":"Gel tẩy tế bào chết lúa mạch Innisfree 120ml","shopee":"https://shopee.vn/product/155343961/2712731961"},{"id":299,"linkVideoRaw":"https://drive.google.com/file/d/1wK2SzQxCTM4lmViY-hsfn8B8kTlrhoQG/view?usp=drivesdk","caption":"Chì kẻ chân mày Innisfree Auto Eyebrow Pencil 0.3g","shopee":"https://shopee.vn/product/155343961/2508475271"},{"id":300,"linkVideoRaw":"https://drive.google.com/file/d/1R_bZyUZ4KDqIkMici0kijHYzXki2cMTb/view?usp=drivesdk","caption":"Chì kẻ chân mày Innisfree Auto Eyebrow Pencil 0.3g","shopee":"https://shopee.vn/product/155343961/2508475271"},{"id":301,"linkVideoRaw":"https://drive.google.com/file/d/1CCLRwjvFJ6j_G5aB6JaAJtkL1BLeqjcR/view?usp=drivesdk","caption":"Chì kẻ chân mày Innisfree Auto Eyebrow Pencil 0.3g","shopee":"https://shopee.vn/product/155343961/2508475271"},{"id":302,"linkVideoRaw":"https://drive.google.com/file/d/1bWPbOmb4FD-LN_8sHqkP5vYBe6_RNTV6/view?usp=drivesdk","caption":"Chì kẻ chân mày Innisfree Auto Eyebrow Pencil 0.3g","shopee":"https://shopee.vn/product/155343961/2508475271"},{"id":303,"linkVideoRaw":"https://drive.google.com/file/d/1966b7TM0OP6qBqxa-ctHdWSJg4mYr8dB/view?usp=drivesdk","caption":"Chì kẻ chân mày Innisfree Auto Eyebrow Pencil 0.3g","shopee":"https://shopee.vn/product/155343961/2508475271"},{"id":304,"linkVideoRaw":"https://drive.google.com/file/d/1uq5u3KG5OIqEOb5DsGrqtXvzcaMbGWMl/view?usp=drivesdk","caption":"Son dưỡng môi mật ong Innisfree Canola Honey 3.5g","shopee":"https://shopee.vn/product/155343961/2895773279"},{"id":305,"linkVideoRaw":"https://drive.google.com/file/d/11H5NVfn6G6iXBwoeEhQVz9Ckv64WE4C7/view?usp=drivesdk","caption":"Son dưỡng môi mật ong Innisfree Canola Honey 3.5g","shopee":"https://shopee.vn/product/155343961/2895773279"},{"id":306,"linkVideoRaw":"https://drive.google.com/file/d/1wmU-mjMvgY7ZAfyyCB8XAkjCVcCPZcWD/view?usp=drivesdk","caption":"Son dưỡng môi mật ong Innisfree Canola Honey 3.5g","shopee":"https://shopee.vn/product/155343961/2895773279"},{"id":307,"linkVideoRaw":"https://drive.google.com/file/d/1y832svuochmh4k59EbCF-0L8iltzDIcA/view?usp=drivesdk","caption":"Son dưỡng môi mật ong Innisfree Canola Honey 3.5g","shopee":"https://shopee.vn/product/155343961/2895773279"},{"id":308,"linkVideoRaw":"https://drive.google.com/file/d/1mHUpxsUzZbVQ2YUnGid9pSxItcLV6ewF/view?usp=drivesdk","caption":"Son dưỡng môi mật ong Innisfree Canola Honey 3.5g","shopee":"https://shopee.vn/product/155343961/2895773279"},{"id":309,"linkVideoRaw":"https://drive.google.com/file/d/1JzsGLlqIa8d00X2tlEnDmorH7j28i72H/view?usp=drivesdk","caption":"Son thỏi lì Innisfree Airy Matte nhẹ môi 3.5g","shopee":"https://shopee.vn/product/155343961/16028689137"},{"id":310,"linkVideoRaw":"https://drive.google.com/file/d/1rzbksaqyoaxHz3wR6TX0O2IE3-tTof8F/view?usp=drivesdk","caption":"Son thỏi lì Innisfree Airy Matte nhẹ môi 3.5g","shopee":"https://shopee.vn/product/155343961/16028689137"},{"id":311,"linkVideoRaw":"https://drive.google.com/file/d/1u2XKAnNrsw2VYRDcR965zejeptkh_UU4/view?usp=drivesdk","caption":"Son thỏi lì Innisfree Airy Matte nhẹ môi 3.5g","shopee":"https://shopee.vn/product/155343961/16028689137"},{"id":312,"linkVideoRaw":"https://drive.google.com/file/d/1ba8bkZaFXl0F5vEGiATK_PI4UlbrndSh/view?usp=drivesdk","caption":"Son thỏi lì Innisfree Airy Matte nhẹ môi 3.5g","shopee":"https://shopee.vn/product/155343961/16028689137"},{"id":313,"linkVideoRaw":"https://drive.google.com/file/d/1YSna0LF2xl9SzSfXkVFvCPdRSW9BtDrM/view?usp=drivesdk","caption":"Son thỏi lì Innisfree Airy Matte nhẹ môi 3.5g","shopee":"https://shopee.vn/product/155343961/16028689137"},{"id":314,"linkVideoRaw":"https://drive.google.com/file/d/1w0rUwqZ7hfSprlCuFlugIhJhlbdUQMiM/view?usp=drivesdk","caption":"Hộp 4 lưỡi dao cạo Gillette Vector","shopee":"https://shopee.vn/product/89960894/5435391392"},{"id":315,"linkVideoRaw":"https://drive.google.com/file/d/1s_nbv7CTjeyz0FZqgvUE-nNeezbvtDNw/view?usp=drivesdk","caption":"Hộp 4 lưỡi dao cạo Gillette Vector","shopee":"https://shopee.vn/product/89960894/5435391392"},{"id":316,"linkVideoRaw":"https://drive.google.com/file/d/1N8JG9YGDXGvtjOY1kDklUmiJ93nAZfD2/view?usp=drivesdk","caption":"Hộp 4 lưỡi dao cạo Gillette Vector","shopee":"https://shopee.vn/product/89960894/5435391392"},{"id":317,"linkVideoRaw":"https://drive.google.com/file/d/1a_JfuQBEUh6NTy1Q8RnczHnpJhX2QhUQ/view?usp=drivesdk","caption":"Dầu gội Pantene 900ml ngăn rụng tóc/phục hồi/sạch gàu","shopee":"https://shopee.vn/product/89960894/1488183840"},{"id":318,"linkVideoRaw":"https://drive.google.com/file/d/1RTfigO78_E4dLosdwV16214jTA7Ar-WP/view?usp=drivesdk","caption":"Dầu gội Pantene 900ml ngăn rụng tóc/phục hồi/sạch gàu","shopee":"https://shopee.vn/product/89960894/1488183840"},{"id":319,"linkVideoRaw":"https://drive.google.com/file/d/179ugoJEeUd4u_DfOfu8WP0KVqInim6xx/view?usp=drivesdk","caption":"Dầu gội Pantene 900ml ngăn rụng tóc/phục hồi/sạch gàu","shopee":"https://shopee.vn/product/89960894/1488183840"},{"id":320,"linkVideoRaw":"https://drive.google.com/file/d/1Vk32cHAGNdpeB64-tif8hqoM_dOqKVSO/view?usp=drivesdk","caption":"Dầu gội Pantene 900ml ngăn rụng tóc/phục hồi/sạch gàu","shopee":"https://shopee.vn/product/89960894/1488183840"},{"id":321,"linkVideoRaw":"https://drive.google.com/file/d/13-znyZraPmcI33rqeOVgK1oNfX5UYvgB/view?usp=drivesdk","caption":"Dầu gội Pantene 900ml ngăn rụng tóc/phục hồi/sạch gàu","shopee":"https://shopee.vn/product/89960894/1488183840"},{"id":322,"linkVideoRaw":"https://drive.google.com/file/d/1OhkJ77DrgTB2opuBHmMRtauO1EzryYAo/view?usp=drivesdk","caption":"Dầu gội Pantene 1800ml ngăn rụng tóc/suôn mượt","shopee":"https://shopee.vn/product/89960894/5630860147"},{"id":323,"linkVideoRaw":"https://drive.google.com/file/d/13I1qTGc9z2sd8u-zytyHqZc6eoM-ZbO0/view?usp=drivesdk","caption":"Dầu gội Pantene 1800ml ngăn rụng tóc/suôn mượt","shopee":"https://shopee.vn/product/89960894/5630860147"},{"id":324,"linkVideoRaw":"https://drive.google.com/file/d/1ev2nXn9o5rg2a-6VenhhKsEb4d0jlR3y/view?usp=drivesdk","caption":"Dầu gội Pantene 1800ml ngăn rụng tóc/suôn mượt","shopee":"https://shopee.vn/product/89960894/5630860147"},{"id":325,"linkVideoRaw":"https://drive.google.com/file/d/1W8V6xJwSD8Me6MlCfD6sjBk4pfyUdgjL/view?usp=drivesdk","caption":"Dầu gội Pantene 1800ml ngăn rụng tóc/suôn mượt","shopee":"https://shopee.vn/product/89960894/5630860147"},{"id":326,"linkVideoRaw":"https://drive.google.com/file/d/1hmcRUu94i2N_MvqupZcmdzlR_tBn7aqm/view?usp=drivesdk","caption":"Dầu gội Pantene 1800ml ngăn rụng tóc/suôn mượt","shopee":"https://shopee.vn/product/89960894/5630860147"},{"id":327,"linkVideoRaw":"https://drive.google.com/file/d/1KOeDaOgti-rWdcdMFrJIYXSNwvXGas4m/view?usp=drivesdk","caption":"Bọt cạo râu Gillette Foamy chanh/bạc hà 50g/175g","shopee":"https://shopee.vn/product/89960894/1488183726"},{"id":328,"linkVideoRaw":"https://drive.google.com/file/d/16bZH1Scij8sT4894_M0SnLberN0qqP5p/view?usp=drivesdk","caption":"Bọt cạo râu Gillette Foamy chanh/bạc hà 50g/175g","shopee":"https://shopee.vn/product/89960894/1488183726"},{"id":329,"linkVideoRaw":"https://drive.google.com/file/d/10hQqtt-F8ANoUXMIw1dn_l7avnHhuIk3/view?usp=drivesdk","caption":"Bọt cạo râu Gillette Foamy chanh/bạc hà 50g/175g","shopee":"https://shopee.vn/product/89960894/1488183726"},{"id":330,"linkVideoRaw":"https://drive.google.com/file/d/1djJeV3nDzULvvJAJ4ObA7L4D9Mc1_orZ/view?usp=drivesdk","caption":"Bọt cạo râu Gillette Foamy chanh/bạc hà 50g/175g","shopee":"https://shopee.vn/product/89960894/1488183726"},{"id":331,"linkVideoRaw":"https://drive.google.com/file/d/1iCMhJ4ZaU8yBCyomD8LRLams-cDyhzz2/view?usp=drivesdk","caption":"Bọt cạo râu Gillette Foamy chanh/bạc hà 50g/175g","shopee":"https://shopee.vn/product/89960894/1488183726"},{"id":332,"linkVideoRaw":"https://drive.google.com/file/d/1e52qozNo1O6gk2pHga7j9sq_xYK_8M6E/view?usp=drivesdk","caption":"Dầu gội xả 2in1 Old Spice 650ml dưỡng tóc nam","shopee":"https://shopee.vn/product/89960894/28421073590"},{"id":333,"linkVideoRaw":"https://drive.google.com/file/d/1h5BdQ9Qt4ZgIYJJesdJCLhaQ2q_K0arz/view?usp=drivesdk","caption":"Dầu gội xả 2in1 Old Spice 650ml dưỡng tóc nam","shopee":"https://shopee.vn/product/89960894/28421073590"},{"id":334,"linkVideoRaw":"https://drive.google.com/file/d/1XWoYaMsoDFcSpFQeal0VfjMG2IPeW0Rf/view?usp=drivesdk","caption":"Dầu gội xả 2in1 Old Spice 650ml dưỡng tóc nam","shopee":"https://shopee.vn/product/89960894/28421073590"},{"id":335,"linkVideoRaw":"https://drive.google.com/file/d/14JLhJfPTA9u3HYQWUykGPstQWTU_rZ-2/view?usp=drivesdk","caption":"Dầu gội xả 2in1 Old Spice 650ml dưỡng tóc nam","shopee":"https://shopee.vn/product/89960894/28421073590"},{"id":336,"linkVideoRaw":"https://drive.google.com/file/d/1G5-jSZ23HjKg5WncVgCdrnc2wOcIEW4x/view?usp=drivesdk","caption":"Combo kem ủ và mặt nạ tóc Pantene Miracles","shopee":"https://shopee.vn/product/89960894/42965244167"},{"id":337,"linkVideoRaw":"https://drive.google.com/file/d/1veSg-Z5JQDI3Y58BKrFz60xIKWsgOCNk/view?usp=drivesdk","caption":"Combo kem ủ và mặt nạ tóc Pantene Miracles","shopee":"https://shopee.vn/product/89960894/42965244167"},{"id":338,"linkVideoRaw":"https://drive.google.com/file/d/1BYHBFUANzPilD9zkMfYqSsIPWt4xOnb5/view?usp=drivesdk","caption":"Combo kem ủ và mặt nạ tóc Pantene Miracles","shopee":"https://shopee.vn/product/89960894/42965244167"},{"id":339,"linkVideoRaw":"https://drive.google.com/file/d/1rhr6WLeBiR5SquNCmYATg-FeKu5Vvjet/view?usp=drivesdk","caption":"Combo kem ủ và mặt nạ tóc Pantene Miracles","shopee":"https://shopee.vn/product/89960894/42965244167"},{"id":340,"linkVideoRaw":"https://drive.google.com/file/d/1p_ZqSfIkQdjZhTYWt_JiNxF18aareblO/view?usp=drivesdk","caption":"Combo kem ủ và mặt nạ tóc Pantene Miracles","shopee":"https://shopee.vn/product/89960894/42965244167"},{"id":341,"linkVideoRaw":"https://drive.google.com/file/d/1xuYY0IZjTopXYDSzRQnDJi7J17-gbQWa/view?usp=drivesdk","caption":"Kem ủ tóc Serum Pantene Miracles phục hồi 180ml","shopee":"https://shopee.vn/product/89960894/41265237190"},{"id":342,"linkVideoRaw":"https://drive.google.com/file/d/1vBnSOs-NDiSYclj8D1pX4sg1yvUwus_b/view?usp=drivesdk","caption":"Kem ủ tóc Serum Pantene Miracles phục hồi 180ml","shopee":"https://shopee.vn/product/89960894/41265237190"},{"id":343,"linkVideoRaw":"https://drive.google.com/file/d/17oaOUN7E-3X9N3qyw8LSmgPdjHdNbE-m/view?usp=drivesdk","caption":"Kem ủ tóc Serum Pantene Miracles phục hồi 180ml","shopee":"https://shopee.vn/product/89960894/41265237190"},{"id":344,"linkVideoRaw":"https://drive.google.com/file/d/1e8MgmMD9xakt1VAvOZuV6QFUVqmalMLG/view?usp=drivesdk","caption":"Kem ủ tóc Serum Pantene Miracles phục hồi 180ml","shopee":"https://shopee.vn/product/89960894/41265237190"},{"id":345,"linkVideoRaw":"https://drive.google.com/file/d/1FfZ1_la7vyn9TMQEty2bCZr7-PqX1AC0/view?usp=drivesdk","caption":"Kem ủ tóc Serum Pantene Miracles phục hồi 180ml","shopee":"https://shopee.vn/product/89960894/41265237190"},{"id":346,"linkVideoRaw":"https://drive.google.com/file/d/1_XLplwBMBbZqFJ8LnfTPmj9ByGOS0UOb/view?usp=drivesdk","caption":"Dao cạo nữ Gillette Venus kèm 2 lưỡi White Tea","shopee":"https://shopee.vn/product/89960894/1488183821"},{"id":347,"linkVideoRaw":"https://drive.google.com/file/d/1c3FrqKfewzxiNZNiB8oLmwAfplnr33cM/view?usp=drivesdk","caption":"Dao cạo nữ Gillette Venus kèm 2 lưỡi White Tea","shopee":"https://shopee.vn/product/89960894/1488183821"},{"id":348,"linkVideoRaw":"https://drive.google.com/file/d/1oH0qhqv2M2UPd7gDlXT_K65ykFrHeZFu/view?usp=drivesdk","caption":"Dao cạo nữ Gillette Venus kèm 2 lưỡi White Tea","shopee":"https://shopee.vn/product/89960894/1488183821"},{"id":349,"linkVideoRaw":"https://drive.google.com/file/d/1cndcpC3auDV7n8BSQiW953YvldN5FSGz/view?usp=drivesdk","caption":"Dao cạo nữ Gillette Venus kèm 2 lưỡi White Tea","shopee":"https://shopee.vn/product/89960894/1488183821"},{"id":350,"linkVideoRaw":"https://drive.google.com/file/d/1g3Ba_ITnL9qFcrjH8GAnB33aTkQuBWnv/view?usp=drivesdk","caption":"Dao cạo nữ Gillette Venus kèm 2 lưỡi White Tea","shopee":"https://shopee.vn/product/89960894/1488183821"},{"id":351,"linkVideoRaw":"https://drive.google.com/file/d/1zTqp8fUB_ElpnBUiW7hFDJVKm8fptckH/view?usp=drivesdk","caption":"Dầu gội Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488183824"},{"id":352,"linkVideoRaw":"https://drive.google.com/file/d/1esOCmdLHeqDPowdgFmR1IifHiUVEqc8a/view?usp=drivesdk","caption":"Dầu gội Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488183824"},{"id":353,"linkVideoRaw":"https://drive.google.com/file/d/1wnZYx879R-a7MzDbVOhcH5cwBlVrgH5c/view?usp=drivesdk","caption":"Dầu gội Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488183824"},{"id":354,"linkVideoRaw":"https://drive.google.com/file/d/16qnOoQvsMG8mOqiRYhsKQeyGSZzMVI6o/view?usp=drivesdk","caption":"Dầu gội Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488183824"},{"id":355,"linkVideoRaw":"https://drive.google.com/file/d/15Jk1DDhpWPHIxjighaiQSyqJ4jnqwXGv/view?usp=drivesdk","caption":"Dầu gội Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488183824"},{"id":356,"linkVideoRaw":"https://drive.google.com/file/d/1Fr0AtKA7gr_wsWm3qfmUieYx9xNvbfoP/view?usp=drivesdk","caption":"Dầu xả Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488182956"},{"id":357,"linkVideoRaw":"https://drive.google.com/file/d/143C_x8vTng58lXs3dtsZphlaba3j--zh/view?usp=drivesdk","caption":"Dầu xả Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488182956"},{"id":358,"linkVideoRaw":"https://drive.google.com/file/d/1nzZyq3qGQ1wXFQ8uufP7QcMe8hYgGyhn/view?usp=drivesdk","caption":"Dầu xả Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488182956"},{"id":359,"linkVideoRaw":"https://drive.google.com/file/d/1su0ZWb6hiaLnNns0_anj1dcMbNFKZCU-/view?usp=drivesdk","caption":"Dầu xả Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488182956"},{"id":360,"linkVideoRaw":"https://drive.google.com/file/d/1umdhIxrVpVsLO_7u6c-HscplPFI6Mz8U/view?usp=drivesdk","caption":"Dầu xả Pantene 650ml ngăn rụng tóc/phục hồi/suôn mượt","shopee":"https://shopee.vn/product/89960894/1488182956"},{"id":361,"linkVideoRaw":"https://drive.google.com/file/d/1Gg-H5CkTFaDK3Q4CEBxQX1iuvAPJ7ZFt/view?usp=drivesdk","caption":"Dầu gội Rejoice 900ml siêu mượt/hoa hồng/nước hoa","shopee":"https://shopee.vn/product/89960894/1488182831"},{"id":362,"linkVideoRaw":"https://drive.google.com/file/d/16RM2Xzu5VVZyxzPo5SI2V9xEuPJ3Preq/view?usp=drivesdk","caption":"Dầu gội Rejoice 900ml siêu mượt/hoa hồng/nước hoa","shopee":"https://shopee.vn/product/89960894/1488182831"},{"id":363,"linkVideoRaw":"https://drive.google.com/file/d/1ws9SzS9N32CYGO8jNLuLEjD8KTXVPBaq/view?usp=drivesdk","caption":"Dầu gội Rejoice 900ml siêu mượt/hoa hồng/nước hoa","shopee":"https://shopee.vn/product/89960894/1488182831"},{"id":364,"linkVideoRaw":"https://drive.google.com/file/d/1G_IA27CYar3cpKK9lqOHP7sh-4jcEPrR/view?usp=drivesdk","caption":"Dầu gội Rejoice 900ml siêu mượt/hoa hồng/nước hoa","shopee":"https://shopee.vn/product/89960894/1488182831"},{"id":365,"linkVideoRaw":"https://drive.google.com/file/d/1sAhgxW4VLDi5Oh5pnlROEVA2QaaNQWsJ/view?usp=drivesdk","caption":"Dầu gội Rejoice 900ml siêu mượt/hoa hồng/nước hoa","shopee":"https://shopee.vn/product/89960894/1488182831"},{"id":366,"linkVideoRaw":"https://drive.google.com/file/d/17pvm4wm68bWvIRyzoJiizetbeS7dfrZv/view?usp=drivesdk","caption":"Băng vệ sinh Whisper 5X mặt bông siêu mỏng cánh","shopee":"https://shopee.vn/product/89960894/29061776278"},{"id":367,"linkVideoRaw":"https://drive.google.com/file/d/1XKr-8lV0VnX4IE6tdQvu_MAsqA1ZLqG6/view?usp=drivesdk","caption":"Băng vệ sinh Whisper 5X mặt bông siêu mỏng cánh","shopee":"https://shopee.vn/product/89960894/29061776278"},{"id":368,"linkVideoRaw":"https://drive.google.com/file/d/1S3bx_HAN3425PIovzG2UrSYDoE3_LWQV/view?usp=drivesdk","caption":"Băng vệ sinh Whisper 5X mặt bông siêu mỏng cánh","shopee":"https://shopee.vn/product/89960894/29061776278"},{"id":369,"linkVideoRaw":"https://drive.google.com/file/d/1j_QNkDqh_LwSuceZfD8zH7LKMusvkuQm/view?usp=drivesdk","caption":"Băng vệ sinh Whisper 5X mặt bông siêu mỏng cánh","shopee":"https://shopee.vn/product/89960894/29061776278"},{"id":370,"linkVideoRaw":"https://drive.google.com/file/d/1v4q9caKst-1gM9_xKMLC3_aLlMhYyaFw/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp trắng dưỡng da 73g/85g","shopee":"https://shopee.vn/product/89960894/5054717631"},{"id":371,"linkVideoRaw":"https://drive.google.com/file/d/1qXWnMVgnZ4Sx23Io-oeT7mTM6XoEnhHp/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp trắng dưỡng da 73g/85g","shopee":"https://shopee.vn/product/89960894/5054717631"},{"id":372,"linkVideoRaw":"https://drive.google.com/file/d/1abPi2QejR6UQ7H62ySnZkDInlHWLZjtO/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp trắng dưỡng da 73g/85g","shopee":"https://shopee.vn/product/89960894/5054717631"},{"id":373,"linkVideoRaw":"https://drive.google.com/file/d/1RJYtfgNuUIpYiLJO9qpP52r3ZzrjqDF-/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp trắng dưỡng da 73g/85g","shopee":"https://shopee.vn/product/89960894/5054717631"},{"id":374,"linkVideoRaw":"https://drive.google.com/file/d/1cU2folslGXCeOGts8_thpJvJKh5AJx67/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp xanh ngăn mùi 85g","shopee":"https://shopee.vn/product/89960894/5154717608"},{"id":375,"linkVideoRaw":"https://drive.google.com/file/d/1xbGhnNgOde29yp_uGEo703R1nN0L2cmX/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp xanh ngăn mùi 85g","shopee":"https://shopee.vn/product/89960894/5154717608"},{"id":376,"linkVideoRaw":"https://drive.google.com/file/d/1Lp5Lh9CEZkNowfiYL2hy-WkIe1TAY4HH/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp xanh ngăn mùi 85g","shopee":"https://shopee.vn/product/89960894/5154717608"},{"id":377,"linkVideoRaw":"https://drive.google.com/file/d/1RjtonoJk03RQ546y0l-x0wruswMPrRax/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp xanh ngăn mùi 85g","shopee":"https://shopee.vn/product/89960894/5154717608"},{"id":378,"linkVideoRaw":"https://drive.google.com/file/d/10GnVILsv77FxkZV7nBD2ScoSXKEPvz68/view?usp=drivesdk","caption":"Sáp khử mùi Old Spice sáp xanh ngăn mùi 85g","shopee":"https://shopee.vn/product/89960894/5154717608"},{"id":379,"linkVideoRaw":"https://drive.google.com/file/d/1BFUz4J-WaMNRaZ0R9QEhFPKKoFpXMgk6/view?usp=drivesdk","caption":"Tắm gội 2in1 Old Spice cho nam 532ml thơm lâu","shopee":"https://shopee.vn/product/89960894/9765171251"},{"id":380,"linkVideoRaw":"https://drive.google.com/file/d/12BmK3_9q2dVZhCRIpbwwI-2gkBr4TuFA/view?usp=drivesdk","caption":"Tắm gội 2in1 Old Spice cho nam 532ml thơm lâu","shopee":"https://shopee.vn/product/89960894/9765171251"},{"id":381,"linkVideoRaw":"https://drive.google.com/file/d/1pPkBrz96CPDWw4i0NRuJ8dZjCoTzDOUA/view?usp=drivesdk","caption":"Tắm gội 2in1 Old Spice cho nam 532ml thơm lâu","shopee":"https://shopee.vn/product/89960894/9765171251"},{"id":382,"linkVideoRaw":"https://drive.google.com/file/d/1UOp-JblrPHn4lMNSu9ah4M-tYGaYGneo/view?usp=drivesdk","caption":"Tắm gội 2in1 Old Spice cho nam 532ml thơm lâu","shopee":"https://shopee.vn/product/89960894/9765171251"},{"id":383,"linkVideoRaw":"https://drive.google.com/file/d/1uvicni7cKhecL0Fng3APXPOPmfkRikUE/view?usp=drivesdk","caption":"Sữa tắm Old Spice dạng gel cho nam 473ml/532ml","shopee":"https://shopee.vn/product/89960894/7154719427"},{"id":384,"linkVideoRaw":"https://drive.google.com/file/d/1X4WDLf2On55jFDG5P_-joAXz-DC35hFF/view?usp=drivesdk","caption":"Sữa tắm Old Spice dạng gel cho nam 473ml/532ml","shopee":"https://shopee.vn/product/89960894/7154719427"},{"id":385,"linkVideoRaw":"https://drive.google.com/file/d/18KXkucntrnzWDnAlBlWAx50pVxvhq7hY/view?usp=drivesdk","caption":"Sữa tắm Old Spice dạng gel cho nam 473ml/532ml","shopee":"https://shopee.vn/product/89960894/7154719427"},{"id":386,"linkVideoRaw":"https://drive.google.com/file/d/18eNqrhuV9FS5MjdQh9_M08AQtzLKq6uG/view?usp=drivesdk","caption":"Sữa tắm Old Spice dạng gel cho nam 473ml/532ml","shopee":"https://shopee.vn/product/89960894/7154719427"},{"id":387,"linkVideoRaw":"https://drive.google.com/file/d/1hMpNZCmHQhc2kep--xVRoHvTmVf_W8Yu/view?usp=drivesdk","caption":"Sữa tắm Old Spice dạng gel cho nam 473ml/532ml","shopee":"https://shopee.vn/product/89960894/7154719427"}];
+  // ==== Caption Generator (chuẩn theo generateCaptions.js) ====
+const captionTemplates = [
+  "Săn sale chính hãng {name} giá tốt",
+  "Deal hời cực sốc {name} chính hãng",
+  "Giá rẻ bất ngờ cho {name} chính hãng",
+  "Giảm sâu số lượng có hạn {name}",
+  "Đừng bỏ lỡ {name} giá cực hời",
+  "Siêu ưu đãi {name} chính hãng hôm nay",
+  "Mua ngay {name} với giá siêu rẻ",
+  "Sản phẩm hot {name} giảm mạnh",
+  "Giá sốc hôm nay cho {name}",
+  "Mua liền tay {name} giá ưu đãi",
+  "Flash sale cực khủng cho {name} chính hãng",
+"Nhanh tay chốt đơn {name} siêu ưu đãi",
+"Mua {name} hôm nay – nhận giá hời liền tay",
+"Cơ hội vàng săn {name} chính hãng giá rẻ",
+"Chớp ngay deal ngon cho {name}",
+"Giảm sốc cực sâu {name} chính hãng hôm nay",
+"Hàng hot {name} đang giảm giá cực mạnh",
+"Đặt nhanh kẻo lỡ {name} giá tốt nhất",
+"Săn ngay {name} chính hãng – deal cực hời",
+"Giá hủy diệt cho {name} chỉ hôm nay",
+"Cực phẩm {name} chính hãng giảm đến 50%",
+"Đại tiệc sale – {name} giá rẻ không tưởng",
+"Sắm liền {name} – ưu đãi đang chờ",
+"Đặc biệt hôm nay: {name} chính hãng siêu sale",
+"Siêu phẩm {name} giá tốt nhất thị trường",
+"Chỉ hôm nay: săn {name} giá sốc không giới hạn",
+"Giảm giá cực đỉnh – {name} chính hãng chờ bạn",
+"Deal ngon bất ngờ cho {name} siêu hot",
+"Cơ hội hiếm có – {name} giá giảm cực sâu",
+"Săn ngay {name} chính hãng – giá mềm bất ngờ",
+"Bắt trend liền tay với {name} chính hãng",
+"Giá ưu đãi đặc biệt cho tín đồ săn sale {name}",
+"Giảm sâu chưa từng có – {name} chờ bạn rinh",
+"Deal ngon khó cưỡng cho {name} chính hãng",
+"Thời điểm vàng để mua {name} giá rẻ",
+"Săn ngay {name} chính hãng – càng mua càng lời",
+"Mở bán cực hot – {name} giảm giá khủng",
+"Không thể tin nổi – {name} giá thấp kỷ lục",
+"Giảm giá cực đại – cơ hội sở hữu {name}",
+"Nhanh tay đặt {name} – ưu đãi giới hạn",
+"Mua {name} hôm nay, nhận quà liền tay",
+"Ưu đãi bùng nổ cho {name} chính hãng",
+"Săn deal nửa giá cho {name} – chỉ hôm nay",
+"Giảm mạnh mừng sale – {name} giá quá hời",
+"Hàng hot {name} – giá chỉ bằng nửa thị trường",
+"Cơ hội cuối cùng sở hữu {name} giá siêu hời",
+"Siêu sale chính hãng {name} – săn ngay kẻo lỡ",
+"Giá tụt sàn cho {name} chính hãng cực chất",
+"Giảm ngay hôm nay – {name} chính hãng giá mềm",
+"Mua {name} bây giờ – nhận ưu đãi khủng liền tay",
+"Chỉ hôm nay: {name} giảm giá cực hấp dẫn",
+"Đừng chần chừ – {name} đang sale cực khủng",
+"Ưu đãi khủng nhất tháng cho {name} chính hãng",
+"Giá giảm chạm đáy – {name} hot nhất hôm nay",
+"Săn deal {name} nhanh tay kẻo hết hàng",
+"Giảm giá khủng – cơ hội sở hữu {name} chính hãng",
+"Hàng xịn {name} giá rẻ bất ngờ, mua ngay!",
+"Chớp cơ hội – {name} chính hãng đang đại hạ giá",
+"Mua liền tay {name}, ưu đãi khủng chờ bạn",
+"Giảm giá chưa từng thấy cho {name}",
+"Deal cực chất – {name} giá siêu ưu đãi",
+"Cực phẩm {name} – giá chỉ bằng 1/2 hôm nay",
+"Nhanh tay rước {name} – giá giảm cực mạnh",
+"Hạ giá toàn sàn – {name} chính hãng giảm sâu",
+"Không thể bỏ qua: {name} đang sale cháy hàng",
+"Giảm giá cực sốc, săn ngay {name} chính hãng",
+"Hàng hot {name} chính hãng, mua sớm lời to",
+"Đặt ngay {name} – deal ngon đang đợi",
+"Cực kỳ hấp dẫn – {name} giá thấp chưa từng",
+"Siêu khuyến mãi {name}, giá chỉ hôm nay thôi!",
+"Giá cực mềm cho {name} – săn ngay kẻo lỡ!",
+"Mua {name} hôm nay, tiết kiệm liền tay",
+"Hàng chính hãng {name} – deal ngon đang đợi",
+"Siêu deal nổ tung – {name} giảm giá ngập tràn",
+"Không mua hôm nay là tiếc – {name} giá rẻ bất ngờ",
+"Cơn mưa ưu đãi đổ bộ – {name} chính hãng giảm mạnh",
+"Deal cực hot – {name} chính hãng giá cực rẻ",
+"Thời gian có hạn – nhanh tay đặt {name}",
+"Săn sale sập sàn với {name} chính hãng",
+"Độc quyền hôm nay – {name} giảm giá siêu sâu",
+"Hàng hot giảm giá – {name} chính hãng giá hời",
+"Giá giảm cực mạnh – mua {name} càng sớm càng lời",
+"Rinh liền tay {name} chính hãng – siêu ưu đãi đang chờ",
+"Cơ hội có một không hai – {name} giảm khủng",
+"Giảm giá cực hot cho fan của {name}",
+"Mở sale toàn sàn – {name} chính hãng giá cực thấp",
+"Giá rẻ bất ngờ, {name} chính hãng chờ bạn săn",
+"Đặt nhanh – {name} chính hãng đang giảm cực sốc",
+"Siêu ưu đãi chỉ 24h – {name} giá hời khó tin",
+"Hàng hot nhất tuần – {name} chính hãng giảm sâu bất ngờ",
+"Săn giá hời cho {name} – cơ hội chỉ có hôm nay",
+"Chốt đơn nhanh tay, {name} đang giảm cực khủng",
+"Giá rẻ đến khó tin – {name} chính hãng đang hot",
+"Ưu đãi cực lớn – {name} chính hãng chờ bạn rước",
+"Deal khủng bất ngờ – {name} sale toàn sàn",
+"Hàng xịn {name} – mua ngay kẻo lỡ cơ hội",
+"Giảm sâu chạm đáy – {name} giá quá hời",
+"Đặt {name} ngay hôm nay, hưởng ưu đãi sốc",
+"Sản phẩm {name} đang giảm giá cực kỳ hấp dẫn",
+"Siêu sale chính hãng – {name} giá rẻ hết nấc",
+"Nhanh tay kẻo hết – {name} đang cháy hàng",
+"Giảm khủng chưa từng có – {name} hot trend 2025",
+"Deal cực hời – {name} chính hãng giá siêu tốt",
+"Giảm giá ngập tràn – {name} chính hãng đồng loạt sale",
+"Giá hời bất ngờ cho fan trung thành của {name}",
+"Mua {name} hôm nay – tiết kiệm cực lớn",
+"Ưu đãi có hạn – {name} giá tốt nhất trong năm",
+"Cực deal đang chờ – {name} giảm giá siêu sâu",
+"Cập bến kho sale – {name} chính hãng giá cực sốc",
+"Mở bát tháng mới với {name} – giá ưu đãi siêu ngon",
+"Chốt deal liền tay – {name} giá mềm chưa từng thấy",
+"Cực phẩm {name} chính hãng – giảm sâu tới bến",
+"Giá ưu đãi chạm sàn – {name} hot nhất hôm nay",
+"Sắm ngay {name}, nhận deal cực lời",
+"Đừng ngó lơ – {name} chính hãng đang giảm cực mạnh",
+"Mua {name} chính hãng hôm nay – giá giảm tới đáy",
+"Deal ngon ngất ngây – {name} giá hời siêu khủng",
+"Chương trình sốc: {name} giảm giá toàn sàn",
+"Cơn bão sale đổ bộ – {name} giá siêu rẻ",
+"Hàng hot {name} – giá cực ưu đãi chỉ trong hôm nay",
+"Cơ hội săn {name} chính hãng với giá cực lời",
+"Săn deal siêu tốc – {name} giảm đến không ngờ",
+"Mua {name} càng sớm, giá càng tốt",
+"Đại hạ giá toàn shop – {name} chính hãng siêu hot",
+"Chỉ còn vài suất ưu đãi cho {name}",
+"Mua ngay {name} – giá tốt bất ngờ đang chờ bạn",
+"Giảm giá sâu nhất tháng – {name} chính hãng siêu ưu đãi",
+"Săn deal vàng cho {name}, tiết kiệm cực lớn",
+"Đặc quyền hôm nay: {name} giảm giá cực hấp dẫn",
+"Giá ngon không tưởng – {name} chính hãng chỉ còn hôm nay",
+"Lướt thấy {name} là auto thả tim ❤️ – giá này mà không chốt thì hơi phí!",
+"Giá mềm như bánh flan 🍮 – {name} chính hãng đang chờ bạn rước!",
+"Đừng để {name} nằm giỏ quá lâu 😭 – sale xong là bay mất đó!",
+"Team săn sale đâu rồi, {name} đang xả hàng kìa 🔥",
+"Nghe nói ai chốt {name} hôm nay là hên cả tuần 😉",
+"Giảm giá sốc quá trời 😱 – {name} chính hãng rẻ như cho!",
+"Giá này không mua {name} là bỏ lỡ chân ái luôn á 😍",
+"Thề luôn, giá {name} này còn rẻ hơn ly trà sữa 🧋",
+"Chậm tay là out game 😤 – {name} chính hãng đang cháy hàng rồi!",
+"Ai chốt nhanh thì lời, ai chần chừ là tiếc 😆 – {name} siêu ưu đãi!",
+"Sale to bằng cái trời 🌤 – {name} chính hãng hạ giá cực mạnh!",
+"Deal ngon hơn người yêu cũ 💔 – {name} giá siêu hời luôn nha!",
+"Không tin nổi luôn 😱 – {name} giảm sâu hơn cả lòng đại dương!",
+"Cảnh báo: {name} đang hot, xem xong là auto muốn mua 😜",
+"Vừa đẹp, vừa rẻ, lại chính hãng – {name} chứ còn ai!",
+"Bấm vào xem thử thôi mà lỡ tay chốt {name} luôn 😅",
+"Mấy anh chị ơi, {name} giảm sốc quá, chậm tay là mất tiêu 🏃‍♀️",
+"Cảnh báo ví mỏng 💸 – {name} giá hời quá khó cưỡng!",
+"Mua {name} hôm nay, mai khỏi hối hận 😎",
+"Giảm giá thật hay mơ vậy trời 😍 – {name} chính hãng siêu rẻ luôn!",
+"Lướt Zalo thấy {name} giảm giá mà tim muốn rớt luôn 😍",
+"Ai đang on Zalo mà chưa chốt {name} là bỏ lỡ deal ngon nha 😜",
+"Mấy chị em ơi, Zalo báo tin vui nè – {name} đang sale siêu to khổng lồ 🎉",
+"Đang tám trên Zalo mà thấy giá {name} vậy là phải dừng tám để chốt đơn liền 🤭",
+"Hàng chính hãng {name} đang hot rần rần trên Zalo luôn đó 🔥",
+"Zalo réo tên bạn rồi kìa 😆 – {name} đang giảm giá cực hời!",
+"Coi chừng lướt Zalo xong auto nghèo vì {name} rẻ quá 😂",
+"Deal nóng hổi vừa thổi vừa mua 😍 – {name} chính hãng trên Zalo",
+"Bỏ qua {name} hôm nay, mai lên Zalo lại tiếc đứt ruột 😭",
+"Ai đang Zalo rảnh tay thì ghé liền, {name} đang sale shock kìa 🔥",
+"Báo động đỏ trên Zalo 🚨 – {name} giảm giá cực mạnh!",
+"Zalo hôm nay nhộn nhịp quá trời, {name} cháy đơn rồi kìa 💥",
+"Không nói nhiều, deal {name} này Zalo phải gọi là ‘đỉnh của chóp’ 🤩",
+"Tag ngay người yêu Zalo vào xem {name}, giá ngon quá nè 😆",
+"Zalo sáng nay toàn thấy người ta khoe chốt {name} 😭 mình chưa kịp mua!",
+"Zalo thông báo: {name} vừa cập bến sale siêu hot 🔥",
+"Cứ mở Zalo là thấy deal ngon – đặc biệt là {name} này luôn nha 💙",
+"Thời tiết nóng mà deal Zalo còn nóng hơn 🥵 – {name} chính hãng giảm cực sâu!",
+"Mấy bạn Zalo đừng ngủ quên, {name} đang cháy hàng rồi đó 🏃‍♀️",
+"Không đùa đâu nha, {name} đang là top trending Zalo luôn á 😍",
+"Trời ơi, hàng {name} em mới về, đẹp xuất sắc luôn 🥰 ai chốt trước em để riêng nè!",
+"Không dám nói quá chứ {name} lần này hot thiệt sự 🔥 chậm tay là hết hàng nha!",
+"Em nói thật, giá {name} này mà không mua là uổng lắm luôn á 😭",
+"Mấy chị ơi, {name} chính hãng em đang sale nè, giá hời quá trời luôn 😍",
+"Tay em run khi thấy giá {name} luôn 🥲 – quá rẻ, chốt nhanh kẻo hết!",
+"Còn đúng vài món {name} thôi đó nha 😭 ai thương thì chốt liền tay giúp em!",
+"Khách quen Zalo nhà em hôm nay ai cũng chốt {name}, còn chị chưa chốt là thiệt đó 😆",
+"Hàng xịn {name} mà giá thì dễ thương lắm nè 💕 nhắn em liền để em giữ cho nha!",
+"Em không nói nhiều, {name} giảm giá thật rồi nha 😱 ai tin nhắn đầu tiên là có deal tốt nhất!",
+"Ai hỏi hoài {name} đâu thì nay em báo tin vui nè 🎉 – hàng về full mẫu luôn!",
+"Chốt {name} sớm đi mấy chị, mai em hết hàng là tiếc lắm đó 😅",
+"Em nói thiệt, deal {name} này ngon hơn người yêu cũ 😜",
+"Zalo nhà em đang cháy đơn vì {name} đó nha, ai chưa chốt thì lẹ lên 💨",
+"Cả Zalo nhà em đang nhộn nhịp vì {name}, ai chưa có là lạc hậu liền 😆",
+"Hàng chính hãng {name}, giá em thương lắm 🥹 chốt sớm em free ship cho luôn!",
+"Mấy anh chị đừng lướt qua, {name} đang sale hời lắm á 😍",
+"Hôm nay em mood đẹp nên giảm thêm cho ai chốt {name} sớm nha 😘",
+"Chỉ còn vài chiếc {name} cuối cùng thôi đó 😭 – ai cần em giữ giùm liền!",
+"Em vừa khui thùng {name}, mùi hàng mới thơm phức luôn 😆 ai chốt thì em quay video gửi liền!",
+"Cảnh báo: {name} nhà em đang cháy đơn 🔥 – ai lỡ tay chậm là đợi chuyến sau luôn nha!",
+"Đừng lướt nữa 😤 – quay lại chốt {name} liền, kẻo mai hết em không cứu được đâu nha!",
+"Cảnh báo cháy đơn 🔥 – ai chưa chốt {name} là auto tiếc luôn á!",
+"Giá này mà không chốt là giận đó nha 😭 – em nói thiệt luôn á!",
+"Mấy anh chị ơi, {name} đang hot hòn họt nè 🔥 chốt nhanh kẻo trễ!",
+"Còn đúng 5 cái {name} thôi đó 😱 – em không dọa đâu, thật luôn á!",
+"Chốt liền tay đi, deal {name} này không lặp lại lần 2 đâu 😜",
+"Em không nói nhiều đâu, ai chốt sớm là lời to luôn 💰",
+"Mấy chị mà lăn tăn là mất liền á 😭 – {name} đang cháy hàng thật sự!",
+"Ai đọc tới đây mà chưa chốt {name} thì gan thiệt đó 😆",
+"Chốt lẹ đi nè, lát em khóa đơn rồi khỏi kêu em giữ nha 😏",
+"Thề luôn, ai chốt {name} hôm nay là lời gấp đôi mai luôn 😎",
+"Không chốt bây giờ, lát thấy 'hết hàng' lại khóc ròng đó 🥹",
+"Nhanh tay kẻo bay, {name} bên em chạy đơn như bay luôn 🚀",
+"Em đang gói hàng {name} mỏi tay luôn 😅 – ai chưa có thì chốt lẹ em giữ cho nha!",
+"Ai chốt đầu tiên em tặng thêm quà xịn luôn 🎁 – nhanh tay nào!",
+"Chốt liền đừng nghĩ nhiều – {name} hot vậy không mua thì tiếc đó 😍",
+"Đừng chờ mai, {name} hôm nay sale cực khủng 😭 – mai là giá khác liền!",
+"Inbox em liền tay nha 💬 – chậm là khỏi còn {name} mà chốt luôn á!",
+"Chốt lẹ giúp em, {name} này bán nhanh như bánh mì nóng luôn 🥐",
+"Chốt càng nhanh, giá càng mềm nha 😜 – {name} chính hãng xịn khỏi bàn!",
+"Còn đúng vài món {name} cuối cùng thôi nha 😭 – ai chưa chốt là mai khóc thật đó!",
+"Đang gói đơn mà tay run luôn 🫣 – {name} bán nhanh quá trời ơi!",
+"Mấy anh chị đừng lăn tăn nữa, {name} này mà hết em không biết tìm đâu ra luôn 😭",
+"Chốt lẹ kẻo hối hận, {name} bên em trôi nhanh hơn người yêu cũ 💨",
+"Thề luôn, deal {name} này không chốt là ngủ cũng thấy tiếc 😅",
+"Em cảnh báo trước rồi nha 😆 – {name} sắp cháy hàng thật sự đó!",
+"Ai đọc tới đây mà chưa nhắn em chốt {name} là gan to dữ luôn 😜",
+"Chốt lẹ đi mấy chị ơi, lát em off Zalo là hết sạch luôn đó 😭",
+"Giá này em mà không đăng sớm là bị khách la 😭 – {name} rẻ bất ngờ luôn!",
+"Mấy đơn {name} bay vèo vèo 🚀 – ai chưa chốt là trễ chuyến nha!",
+"Ai chốt nhanh em thương, em tặng thêm món nhỏ xinh luôn 🎁",
+"Đừng để em phải nhắn lại 'hết hàng rồi nha' 😢 – {name} sắp bay hết!",
+"Em nói nhỏ thôi 🤫 – {name} hôm nay sale bí mật, chốt nhanh mới kịp!",
+"Không nói nhiều, giá {name} này chỉ có hôm nay – mai là hết sạch 😭",
+"Ai chốt trước em ship trước nha 🚚 – chậm tay là phải đợi đợt sau luôn đó!",
+"Chốt liền tay đi mấy chị ơi 😍 – hàng xịn, giá rẻ, em nói thiệt luôn á!",
+"Đơn {name} chạy nhanh như tin đồn luôn 😆 – ai chưa chốt là mất liền nha!",
+"Inbox em lẹ kẻo trễ 💬 – {name} đang cháy hàng quá trời luôn!",
+"Giá này mà không chốt là em dỗi luôn á 😤",
+"Nhanh tay giúp em chốt đơn nha 😘 – {name} hôm nay hot quá trời luôn!"
+];
+
+const hashtagPool = [
+  "#KOLUytin",
+  "#HangMoiVe",
+  "#Shopxuhuong",
+  "#LuotVuiMuaLien",
+  "#VideohangTieudung",
+  "#VideohangDoisong",
+  "#VideohangGiadung",
+  "#sandealcungkol",
+  "#KOLreview",
+  "#ShopeeVideo",
+  "#ShopeeCreator"
+];
+
+
+function randomChoice(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function randomHashtags(count = 4) {
+  const copy = [...hashtagPool];
+  const result = [];
+  for (let i = 0; i < count && copy.length > 0; i++) {
+    const idx = Math.floor(Math.random() * copy.length);
+    result.push(copy.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
+function flashButton(btn, duration = 500) {
+  if (!btn) return;
+  btn.classList.add('flash-success');
+  setTimeout(() => btn.classList.remove('flash-success'), duration);
+}
+
+
+
+function generateCaption(productName) {
+  const template = randomChoice(captionTemplates);
+  const caption = template.replace("{name}", productName);
+
+  const hashtags = randomHashtags(4).join(" ");
+
+  return caption + " " + hashtags;
+}
+
+
+
+
+  function savePostedMap(map) { localStorage.setItem('posted_map_v1', JSON.stringify(map || {})); }
+  function loadPostedMap() { try { return JSON.parse(localStorage.getItem('posted_map_v1') || '{}'); } catch(e) { return {}; } }
+  function pushHistory(record) {
+    const h = JSON.parse(localStorage.getItem('history_v1') || '[]');
+    h.unshift(record);
+    if (h.length > 500) h.length = 500;
+    localStorage.setItem('history_v1', JSON.stringify(h));
+  }
+  function loadHistory() { try { return JSON.parse(localStorage.getItem('history_v1') || '[]'); } catch(e) { return []; } }
+  function clearHistory() { localStorage.removeItem('history_v1'); }
+
+  // DOM
+  const productRows = document.getElementById('productRows');
+  const currentName = document.getElementById('currentName');
+  const displayCaption = document.getElementById('displayCaption');
+  const displayShopee = document.getElementById('displayShopee');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const copyCaptionBtn = document.getElementById('copyCaptionBtn');
+  const copyShopeeBtn = document.getElementById('copyShopeeBtn');
+  const randomBtn = document.getElementById('randomBtn');
+  const importPostedBtn = document.getElementById('importPostedBtn');
+  const copyPostedBtn = document.getElementById('copyPostedBtn');
+  const historyToggle = document.getElementById('historyToggle');
+  const historySection = document.getElementById('historySection');
+  const historyList = document.getElementById('historyList');
+  const clearHistoryBtn = document.getElementById('clearHistory');
+  const toggleCaptionBtn = document.getElementById('toggleCaptionBtn');
+  const captionBox = document.getElementById('captionBox');
+  const searchInput = document.getElementById('searchInput');
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const manualPostedTextarea = document.getElementById('manualPostedTextarea');
+  const modalImportBtn = document.getElementById('modalImportBtn');
+  const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+  let currentIndex = null;
+  let postedMap = loadPostedMap();
+  let filterText = '';
+
+  function updateSummary() {
+    const total = PRODUCTS.length;
+    const posted = Object.keys(postedMap).filter(k => postedMap[k]).length;
+    const summaryEl = document.getElementById('summary');
+    summaryEl.textContent = 'ĐÃ ĐĂNG ' + posted + '/' + total + ' SẢN PHẨM';
+  }
+
+  function renderTable() {
+    productRows.innerHTML = '';
+    const q = (filterText || '').trim().toLowerCase();
+    const rows = PRODUCTS.filter(p => {
+      if (!q) return true;
+      // if q is number or starts with #, try id match
+      const qnum = q.replace('#','');
+      if (/^\d+$/.test(qnum)) {
+        return p.id === Number(qnum);
+      }
+      // otherwise search caption or shopee
+      return (p.caption || '').toLowerCase().includes(q) || (p.shopee || '').toLowerCase().includes(q);
+    });
+
+    rows.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="width:36px"><div class="posted-dot ${postedMap[p.id]? 'posted-true':''}" title="${postedMap[p.id] ? 'Đã đăng' : 'Chưa đăng'}"></div></td>
+        <td style="width:64px;font-weight:700">#${p.id}</td>
+        <td>${escapeHtml((p.caption || '').slice(0,160)).replace(/\n/g,' ')}${(p.caption || '').length>160 ? '…':''}</td>
+        <td style="width:110px" class="actions">
+          <button class="small" data-action="show" data-id="${p.id}">Hiển thị</button>
+		  <button class="small" data-action="unmark" data-id="${p.id}">Đánh dấu chưa đăng</button>
+        </td>
+      `;
+      productRows.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; });
+  }
+
+  function showProduct(id, addToHistory = true) {
+    const p = PRODUCTS.find(x => x.id === id);
+    if (!p) return;
+    currentIndex = id;
+    currentName.textContent = 'Sản phẩm ' + id;
+    displayCaption.value = p.caption || '';
+    displayShopee.value = p.shopee || '';
+    downloadBtn.dataset.url = p.linkVideoRaw || '';
+    if (addToHistory) {
+      pushHistory({type:'show', id, at: Date.now(), caption: p.caption || '', shopee: p.shopee || '', link: p.linkVideoRaw || ''});
+      renderHistory();
+    }
+    // Update button states (download still active even if posted? user wanted default mark on copy link; but still disable copyCaption/copyShopee when posted)
+    const isPosted = !!postedMap[id];
+    //copyCaptionBtn.disabled = isPosted;
+    //copyShopeeBtn.disabled = isPosted;
+    updateSummary();
+    renderTable();
+  }
+
+  // When copying link, also mark as posted by default
+  downloadBtn.addEventListener('click', async () => {
+    if (!currentIndex) { alert('Chọn sản phẩm trước.'); return; }
+    const p = PRODUCTS.find(x => x.id === currentIndex);
+    if (!p || !p.linkVideoRaw) { alert('Không có link video cho sản phẩm này.'); return; }
+    const dl = p.linkVideoRaw;
+    const ok = await copyToClipboard(dl);
+	if (ok) flashButton(downloadBtn);
+	else alert('❌ Không copy được link video (xem console)');
+
+    // Mark posted by default
+    postedMap[currentIndex] = true;
+    savePostedMap(postedMap);
+    pushHistory({type:'mark_posted', id: currentIndex, at: Date.now()});
+    renderHistory();
+    renderTable();
+    updateSummary();
+  });
+
+
+/**
+ * smartTruncate(text, max)
+ * - Trả về chuỗi (<= max) nếu có thể mà không cắt từ/hashtag.
+ * - Nếu token đầu dài hơn max, sẽ mở rộng sang phải tới whitespace tiếp theo (có thể > max)
+ *   để tránh cắt token; nếu whitespace tiếp theo quá xa (> max + 30) thì fallback cắt ở max.
+ */
+function smartTruncate(text, max = 149) {
+  if (!text || text.length <= max) return text;
+
+  // Nếu ký tự ở vị trí max là khoảng trắng -> cắt an toàn
+  if (/s/.test(text[max - 1])) {
+    return text.slice(0, max).trim();
+  }
+
+  // Tìm khoảng trắng cuối cùng trước max
+  const before = text.slice(0, max);
+  const lastSpaceBefore = before.lastIndexOf(' ');
+  if (lastSpaceBefore > 0) {
+    return text.slice(0, lastSpaceBefore).trim();
+  }
+
+  // Không có khoảng trắng trước max -> thử tìm khoảng trắng sau max (mở rộng sang phải)
+  const after = text.slice(max);
+  const nextSpaceAfter = after.search(/s/);
+  if (nextSpaceAfter >= 0) {
+    const extendedIndex = max + nextSpaceAfter;
+    // nếu không quá dài (ví dụ ko vượt quá max + 30) thì chấp nhận mở rộng
+    if (extendedIndex <= max + 30) {
+      return text.slice(0, extendedIndex).trim();
+    }
+  }
+
+  // Fallback: cắt cứng ở max (không tránh được cắt)
+  return text.slice(0, max).trim();
+}
+
+
+copyCaptionBtn.addEventListener('click', async () => {
+  if (!currentIndex) { alert('Chọn sản phẩm trước.'); return; }
+
+  const p = PRODUCTS.find(x => x.id === currentIndex);
+  const name = p?.caption || "Sản phẩm";
+  const fullCaption = generateCaption(name);
+  const truncated = smartTruncate(fullCaption, 149);
+
+  displayCaption.value = truncated;
+  const ok = await copyToClipboard(truncated);
+
+  if (ok) flashButton(copyCaptionBtn);
+});
+
+
+
+
+
+copyShopeeBtn.addEventListener('click', async () => {
+  if (!currentIndex) { alert('Chọn sản phẩm trước.'); return; }
+
+  const sh = (PRODUCTS.find(x=>x.id===currentIndex) || {}).shopee || '';
+  const ok = await copyToClipboard(sh);
+  if (ok) flashButton(copyShopeeBtn);
+});
+
+
+  // Random button (unchanged)
+// Random button (có flash hiệu ứng)
+randomBtn.addEventListener('click', () => {
+  const candidates = PRODUCTS.filter(p => !postedMap[p.id]);
+  if (!candidates.length) {
+    alert('❌ Hết video — không còn sản phẩm chưa đăng. Xóa lịch sử để cho phép đăng lại.');
+    return;
+  }
+  const idx = Math.floor(Math.random() * candidates.length);
+  const id = candidates[idx].id;
+  showProduct(id, true);
+  pushHistory({type:'random', id, at: Date.now()});
+  renderHistory();
+
+  flashButton(randomBtn); // ✅ thêm dòng này để nút nháy màu xanh 0.5s
+});
+
+
+  // Toggle caption box
+  toggleCaptionBtn.addEventListener('click', () => {
+    if (!currentIndex && PRODUCTS.length) showProduct(PRODUCTS[0].id, false);
+    if (captionBox.style.display === 'none' || captionBox.style.display === '') {
+      captionBox.style.display = 'block';
+    } else {
+      captionBox.style.display = 'none';
+    }
+  });
+
+  // History render
+  function renderHistory() {
+    const h = loadHistory();
+    const filtered = h.filter(it => it.type === 'random' || it.type === 'mark_posted' || it.type === 'unmark_posted' || it.type === 'show');
+    historyList.innerHTML = filtered.length ? filtered.map(it => {
+      let txt = '[' + formatDate(it.at) + '] ';
+      if (it.type === 'random') txt += 'Random -> Sản phẩm ' + it.id;
+      else if (it.type === 'mark_posted') txt += 'Đã đánh dấu "Đã đăng" Sản phẩm ' + it.id;
+      else if (it.type === 'unmark_posted') txt += 'Bỏ đánh dấu "Đã đăng" Sản phẩm ' + it.id;
+      else if (it.type === 'show') txt += 'Hiển thị Sản phẩm ' + it.id;
+      else txt += JSON.stringify(it);
+      return '<div style="padding:6px;border-bottom:1px solid #f5f5f5;font-size:13px">' + txt + '</div>';
+    }).join('') : '<div style="color:#999;padding:8px">Chưa có lịch sử</div>';
+  }
+
+  historyToggle.addEventListener('click', () => {
+    historySection.style.display = historySection.style.display === 'none' ? 'block' : 'none';
+    renderHistory();
+  });
+
+  clearHistoryBtn.addEventListener('click', () => {
+    if (!confirm('Xóa toàn bộ lịch sử và reset trạng thái "Đã đăng"?')) return;
+    clearHistory();
+    postedMap = {};
+    savePostedMap(postedMap);
+    renderHistory();
+    renderTable();
+    updateSummary();
+  });
+
+  // Copy posted list
+  copyPostedBtn.addEventListener('click', async () => {
+    const postedIds = Object.keys(postedMap).filter(k => postedMap[k]).map(k => Number(k)).sort((a,b)=>a-b);
+    if (postedIds.length === 0) { alert('Chưa có sản phẩm nào được đánh dấu "Đã đăng"'); return; }
+    const lines = postedIds.map(id => 'Sản phẩm ' + id + ' đã đăng').join('\n');
+    const ok = await copyToClipboard(lines);
+    if (!ok) alert('Không copy được (xem console)');
+    else alert('Đã copy ' + postedIds.length + ' sản phẩm đã đăng vào clipboard');
+  });
+
+  // Import posted modal
+  importPostedBtn.addEventListener('click', () => {
+    manualPostedTextarea.value = '';
+    modalOverlay.style.display = 'flex';
+  });
+  modalCancelBtn.addEventListener('click', () => { modalOverlay.style.display = 'none'; });
+  modalImportBtn.addEventListener('click', () => {
+    const txt = manualPostedTextarea.value || '';
+    const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) { alert('Không có nội dung để nhập'); return; }
+    const idsToMark = new Set();
+    lines.forEach(l => {
+      // try to extract number
+      const m = l.match(/(\d+)/);
+      if (m) idsToMark.add(Number(m[1]));
+    });
+    if (idsToMark.size === 0) { alert('Không tìm thấy ID hợp lệ'); return; }
+    idsToMark.forEach(id => {
+      if (id >=1 && id <= PRODUCTS.length) {
+        postedMap[id] = true;
+        pushHistory({type:'mark_posted', id, at: Date.now()});
+      }
+    });
+    savePostedMap(postedMap);
+    modalOverlay.style.display = 'none';
+    renderHistory();
+    renderTable();
+    updateSummary();
+    alert('Đã nhập ' + idsToMark.size + ' sản phẩm thành Đã đăng');
+  });
+
+  // Click inside product rows
+  productRows.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const id = Number(btn.dataset.id);
+ if (action === 'unmark') {
+  if (!postedMap[id]) {
+    alert('Sản phẩm này chưa được đánh dấu đăng.');
+    return;
+  }
+  if (!confirm('Bỏ đánh dấu "Đã đăng" cho Sản phẩm ' + id + '?')) return;
+  postedMap[id] = false;
+  savePostedMap(postedMap);
+  pushHistory({type:'unmark_posted', id, at: Date.now()});
+  renderHistory();
+  renderTable();
+  updateSummary();
+}
+
+ 
+  });
+
+  function formatDate(ts) { const d = new Date(ts); return d.toLocaleString(); }
+
+  // copyToClipboard helper
+  async function copyToClipboard(text) {
+    if (!text) { console.warn('Không có nội dung để copy'); return false; }
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+      } catch (e2) {
+        console.error('Không copy được', e2);
+        return false;
+      }
+    }
+  }
+
+  // Search input
+  searchInput.addEventListener('input', (e) => {
+    filterText = e.target.value;
+    renderTable();
+  });
+
+  // initial render
+  function init() {
+    updateSummary();
+    renderTable();
+    renderHistory();
+    if (PRODUCTS.length > 0) showProduct(PRODUCTS[0].id, false);
+  }
+
+  init();
+
+  console.log('Số sản phẩm:', PRODUCTS.length);
+
+</script>
+</body>
+</html>
